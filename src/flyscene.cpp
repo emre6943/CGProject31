@@ -159,10 +159,74 @@ void Flyscene::raytraceScene(int width, int height) {
 }
 
 
-Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
-                                   Eigen::Vector3f &dest) {
-  // just some fake random color per pixel until you implement your ray tracing
-  // remember to return your RGB values as floats in the range [0, 1]!!!
-  return Eigen::Vector3f(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX,
-                         rand() / (float)RAND_MAX);
+//Intersection with plane
+auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f normal, Eigen::Vector4f p_onPlane) {
+	Eigen::Vector3f p = (p_onPlane.x, p_onPlane.y, p_onPlane.z);
+	float distance = p.dot(normal);
+
+	struct result { bool inter; float t; };
+
+	if (to.dot(normal) == 0) {
+		return result{ false / 0 };
+	}
+
+	float t = (distance - (start.dot(normal))) / (to.dot(normal));
+	return result{ true / t };
+}
+
+//Intersection with triangle
+//give normalized vectors
+auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face face, Tucano::Mesh mesh) {
+	Eigen::Vector3f color;
+	Eigen::Vector3f facenormal = face.normal;
+	std::vector<Eigen::Vector4f> vecs;
+
+	struct result { bool inter; float d; };
+
+	for (int i = 0; i < 3; i++) {
+		int vertexid = face.vertex_ids[i];
+		vecs.push_back(mesh.getVertex(face.vertex_ids[i]));
+	}
+
+	auto intersectionPlane = intersectPlane(start, to, facenormal, vecs[0]);
+	if (intersectionPlane.inter) {
+		Eigen::Vector3f p_onPlane = start + intersectionPlane.t * to;
+		Eigen::Vector3f vector1 = vecs[1] - vecs[0];
+		Eigen::Vector3f vector2 = vecs[1] - vecs[0];
+
+
+	}
+
+	return result{ false / 0 };
+}
+
+//shade()
+
+//recursiveraytracing()
+
+
+
+
+Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f& origin,
+	Eigen::Vector3f& dest) {
+	// just some fake random color per pixel until you implement your ray tracing
+	// remember to return your RGB values as floats in the range [0, 1]!!!
+
+	  //shot ray from origin to dest if it intersects?
+	Eigen::Vector3f origin_todes = origin - dest;
+
+	// Get the light vector
+	Eigen::Vector3f origin_todes = origin - dest;
+
+	std::vector<Eigen::Vector3f> lightvecs;
+	//shot ray from obj to light if it intersects black
+	//if it doesnt intrsect?
+	for (unsigned i = 0; i < lights.size(); i++) {
+		lightvecs.push_back(lights[i] - dest);
+	}
+
+	//bounce one more ray
+
+	return Eigen::Vector3f(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX,
+		rand() / (float)RAND_MAX);
 }
