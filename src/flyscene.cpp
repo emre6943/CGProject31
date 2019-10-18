@@ -161,17 +161,23 @@ void Flyscene::raytraceScene(int width, int height) {
 
 //Intersection with plane
 auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f normal, Eigen::Vector4f p_onPlane) {
-	Eigen::Vector3f p = (p_onPlane.x, p_onPlane.y, p_onPlane.z);
+	Eigen::Vector3f p = Eigen::Vector3f(p_onPlane.x(), p_onPlane.y(), p_onPlane.z());
 	float distance = p.dot(normal);
 
 	struct result { bool inter; float t; };
 
 	if (to.dot(normal) == 0) {
-		return result{ false / 0 };
+		return result{ false , 0 };
 	}
 
 	float t = (distance - (start.dot(normal))) / (to.dot(normal));
-	return result{ true / t };
+	return result{ true , t };
+}
+
+// a method used in triangle intersection
+float sign(Eigen::Vector3f p1, Eigen::Vector4f p2, Eigen::Vector4f p3)
+{
+	return ((p1.x() - p3.x()) * (p2.y() - p3.y())) - ((p2.x() - p3.x()) * (p1.y() - p3.y()));
 }
 
 //Intersection with triangle
@@ -181,7 +187,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	Eigen::Vector3f facenormal = face.normal;
 	std::vector<Eigen::Vector4f> vecs;
 
-	struct result { bool inter; float d; };
+	struct result { bool inter; };
 
 	for (int i = 0; i < 3; i++) {
 		int vertexid = face.vertex_ids[i];
@@ -191,13 +197,18 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	auto intersectionPlane = intersectPlane(start, to, facenormal, vecs[0]);
 	if (intersectionPlane.inter) {
 		Eigen::Vector3f p_onPlane = start + intersectionPlane.t * to;
-		Eigen::Vector3f vector1 = vecs[1] - vecs[0];
-		Eigen::Vector3f vector2 = vecs[1] - vecs[0];
+		
+		float a = sign(p_onPlane, vecs[0], vecs[1]);
+		float b = sign(p_onPlane, vecs[1], vecs[2]);
+		float c = sign(p_onPlane, vecs[2], vecs[0]);
 
+		bool has_neg = (a < 0) || (b < 0) || (c < 0);
+		bool has_pos = (a > 0) || (b > 0) || (c > 0);
 
+		return  result{ !(has_neg && has_pos) };
 	}
 
-	return result{ false / 0 };
+	return result{ false };
 }
 
 //shade()
@@ -216,12 +227,11 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f& origin,
 	Eigen::Vector3f origin_todes = origin - dest;
 
 	// Get the light vector
-	Eigen::Vector3f origin_todes = origin - dest;
-
 	std::vector<Eigen::Vector3f> lightvecs;
+
 	//shot ray from obj to light if it intersects black
 	//if it doesnt intrsect?
-	for (unsigned i = 0; i < lights.size(); i++) {
+	for (int i = 0; i < lights.size(); i++) {
 		lightvecs.push_back(lights[i] - dest);
 	}
 
