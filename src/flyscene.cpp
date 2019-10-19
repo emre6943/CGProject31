@@ -1,6 +1,7 @@
 #include "flyscene.hpp"
 #include <GLFW/glfw3.h>
 
+
 void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
   phong.initialize();
@@ -201,6 +202,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 		float a = sign(p_onPlane, vecs[0], vecs[1]);
 		float b = sign(p_onPlane, vecs[1], vecs[2]);
 		float c = sign(p_onPlane, vecs[2], vecs[0]);
+	
 
 		bool has_neg = (a < 0) || (b < 0) || (c < 0);
 		bool has_pos = (a > 0) || (b > 0) || (c > 0);
@@ -209,6 +211,76 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	}
 
 	return result{ false };
+}
+
+std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
+	std::vector<Eigen::Vector3f> vecs;
+	float min_x = mesh.getVertex(0).x();
+	float max_x = mesh.getVertex(0).x();
+
+	float min_y = mesh.getVertex(0).y();
+	float max_y = mesh.getVertex(0).y();
+
+	float min_z = mesh.getVertex(0).z();
+	float max_z = mesh.getVertex(0).z();
+
+	for (int i = 0; i < mesh.getNumberOfVertices(); i++) {
+		Eigen::Vector4f v = mesh.getVertex(i);
+		if (min_x > v.x()) {
+			min_x = v.x();
+		}
+		if (max_x < v.x()) {
+			max_x = v.x();
+		}
+		if (min_y > v.y()) {
+			min_y = v.y();
+		}
+		if (max_y < v.y()) {
+			max_y = v.y();
+		}
+		if (min_z > v.z()) {
+			min_z = v.z();
+		}
+		if (max_z < v.z()) {
+			max_z = v.z();
+		}
+	}
+	vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
+	vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
+	return vecs;
+}
+
+// checks intersection with bounding box
+auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
+	struct result { bool inter; Tucano::Mesh  mesh; };
+	std::vector<Eigen::Vector3f> box = getboundingBox(mesh);
+
+	float tmin_x = (box[0].x() - start.x()) / to.x();
+	float tmax_x = (box[1].x() - start.x()) / to.x();
+
+	float tmin_y = (box[0].y() - start.y()) / to.y();
+	float tmax_y = (box[1].y() - start.y()) / to.y();
+
+	float tmin_z = (box[0].z() - start.z()) / to.z();
+	float tmax_z = (box[1].z() - start.z()) / to.z();
+	
+	float tin_x = std::min(tmin_x, tmax_x);
+	float tout_x = std::max(tmin_x, tmax_x);
+
+	float tin_y = std::min(tmin_y, tmax_y);
+	float tout_y = std::max(tmin_y, tmax_y);
+
+	float tin_z = std::min(tmin_z, tmax_z);
+	float tout_z = std::max(tmin_z, tmax_z);
+
+	float tin = 0;
+	float tout = 1;
+
+	if ((tin > tout) || (tout < 0)) {
+		return result{ false , mesh };
+	}
+
+	return result{ true , mesh };
 }
 
 //shade()
@@ -235,6 +307,7 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f& origin,
 		lightvecs.push_back(lights[i] - dest);
 	}
 
+	
 	//bounce one more ray
 
 	return Eigen::Vector3f(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX,
