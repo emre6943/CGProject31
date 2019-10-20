@@ -189,7 +189,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	Eigen::Vector3f facenormal = face.normal;
 	std::vector<Eigen::Vector4f> vecs;
 
-	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh};
+	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh; };
 
 	for (int i = 0; i < 3; i++) {
 		int vertexid = face.vertex_ids[i];
@@ -218,7 +218,7 @@ std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
 	std::vector<Eigen::Vector3f> vecs;
 	float min_x = mesh.getVertex(0).x();
 	float max_x = mesh.getVertex(0).x();
-
+	
 	float min_y = mesh.getVertex(0).y();
 	float max_y = mesh.getVertex(0).y();
 
@@ -288,11 +288,11 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::
 //intersect of one vector to the universe
 auto intersect(Eigen::Vector3f start, Eigen::Vector3f to) {
 	std::vector<std::vector<Eigen::Vector3f>> boxes;
-	for (int i = 0; i < boxes.size(); i++) {//all the meshes
+	for (int i = 0; i < boxes.size(); i++) {//we need to go over all the meshes
 		boxes.push_back(getboundingBox(mesh));
 		if (intersectBox(start, to, boxes[i]).inter) {
 			for (int a = 0; a < mesh.getNumberOfFaces; a) {
-				struct hit = intersectTriange(start, to, mesh.getFace(a), mesh);
+				auto hit = intersectTriange(start, to, mesh.getFace(a), mesh);
 				if (hit.inter) {
 					return hit;
 				}
