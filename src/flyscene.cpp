@@ -248,12 +248,15 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
     float zdiff = boxlim[1].z - boxlim[0].z;
 
     float cut;
-    // CHOP CHOP PART NEEDS TO BE FINISHED
+
+	if (box.size() < 200) {
+		return;
+	}
+    
     if (xdiff > ydiff && xdiff > zdiff) {
         cut = boxlim[2].x;
         for (int i = 0; i < box.size(); i++) {
             std::vector<GLuint> vecsofface = box[i].vertex_ids;
-
             for (int a = 0; a < vecsofface.size(); a++) {
                 if (mesh.getVertex(vecsofface[a]).x < cut) {
                     if (box1.back != mesh.getFace(i)) {
@@ -267,6 +270,47 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
             }
         }
     }
+	else if (ydiff > xdiff && ydiff > zdiff) {
+		cut = boxlim[2].y;
+		for (int i = 0; i < box.size(); i++) {
+			std::vector<GLuint> vecsofface = box[i].vertex_ids;
+			for (int a = 0; a < vecsofface.size(); a++) {
+				if (mesh.getVertex(vecsofface[a]).y < cut) {
+					if (box1.back != mesh.getFace(i)) {
+						box1.push_back(mesh.getFace(i));
+					}
+				}
+				else {
+					if (box2.back != mesh.getFace(i)) {
+						box2.push_back(mesh.getFace(i));
+					}
+				}
+			}
+		}
+	}
+	else  {
+		cut = boxlim[2].z;
+		for (int i = 0; i < box.size(); i++) {
+			std::vector<GLuint> vecsofface = box[i].vertex_ids;
+			for (int a = 0; a < vecsofface.size(); a++) {
+				if (mesh.getVertex(vecsofface[a]).z < cut) {
+					if (box1.back != mesh.getFace(i)) {
+						box1.push_back(mesh.getFace(i));
+					}
+				}
+				else {
+					if (box2.back != mesh.getFace(i)) {
+						box2.push_back(mesh.getFace(i));
+					}
+				}
+			}
+		}
+	}
+
+	boxes.push_back(box1);
+	boxes.push_back(box2);
+	createboxes(box1, mesh, boxes);
+	createboxes(box2, mesh, boxes);
 
 }
 
