@@ -165,15 +165,16 @@ void Flyscene::raytraceScene(int width, int height) {
 auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f normal, Eigen::Vector4f p_onPlane) {
 	Eigen::Vector3f p = Eigen::Vector3f(p_onPlane.x(), p_onPlane.y(), p_onPlane.z());
 	float distance = p.dot(normal);
-
-	struct result { bool inter; float t; };
+	Eigen::Vector4f point;
+	struct result { bool inter; float t; Eigen::Vector4f point;};
 
 	if (to.dot(normal) == 0) {
-		return result{ false , 0 };
+		return result{ false , 0, p_onPlane };
 	}
 
 	float t = (distance - (start.dot(normal))) / (to.dot(normal));
-	return result{ true , t };
+	point = ((start + t * to), p_onPlane.w);
+	return result{ true , t , point};
 }
 
 // a method used in triangle intersection
@@ -189,7 +190,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	Eigen::Vector3f facenormal = face.normal;
 	std::vector<Eigen::Vector4f> vecs;
 
-	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh; };
+	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh; Eigen::Vector4f hit};
 
 	for (int i = 0; i < 3; i++) {
 		int vertexid = face.vertex_ids[i];
@@ -198,7 +199,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 
 	auto intersectionPlane = intersectPlane(start, to, facenormal, vecs[0]);
 	if (intersectionPlane.inter) {
-		Eigen::Vector3f p_onPlane = start + intersectionPlane.t * to;
+		Eigen::Vector4f p_onPlane = intersectionPlane.point;
 		
 		float a = sign(p_onPlane, vecs[0], vecs[1]);
 		float b = sign(p_onPlane, vecs[1], vecs[2]);
@@ -208,10 +209,10 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 		bool has_neg = (a < 0) || (b < 0) || (c < 0);
 		bool has_pos = (a > 0) || (b > 0) || (c > 0);
 
-		return  result{ !(has_neg && has_pos), face, mesh };
+		return  result{ !(has_neg && has_pos), face, mesh, p_onPlane };
 	}
 
-	return result{ false, face, mesh };
+	return result{ false, face, mesh, vecs[0]};
 }
 
 std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
@@ -284,24 +285,24 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::
 	return result{ true , box };
 
 }
+// bounding box creation
 
 //intersect of one vector to the universe
-auto intersect(Eigen::Vector3f start, Eigen::Vector3f to) {
+auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
 	std::vector<std::vector<Eigen::Vector3f>> boxes;
+	std::vector<Eigen::Vector3f > hits;
 	for (int i = 0; i < boxes.size(); i++) {//we need to go over all the meshes
 		boxes.push_back(getboundingBox(mesh));
 		if (intersectBox(start, to, boxes[i]).inter) {
 			for (int a = 0; a < mesh.getNumberOfFaces; a) {
 				auto hit = intersectTriange(start, to, mesh.getFace(a), mesh);
 				if (hit.inter) {
-					return hit;
+					hits.push_back(Eigen::Vector3f (hit.hit.x, hit.hit.y, hit.hit.z));
 				}
 			}
 		}
 	}
-	
-	
-	
+	return hits;
 }
 
 //shade()
@@ -335,7 +336,7 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f& origin,
 	for (int i = 0; i < lights.size(); i++) {
 		lightvecs.push_back(lights[i] - dest);
 	}
-
+	
 	
 	//bounce one more ray
 
