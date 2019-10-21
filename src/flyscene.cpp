@@ -197,7 +197,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
         bool inter;
         Tucano::Face face;
         Tucano::Mesh mesh;
-        Eigen::Vector4f hit
+        Eigen::Vector4f hit;
     };
 
     for (int i = 0; i < 3; i++) {
@@ -205,13 +205,10 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
         vecs.push_back(mesh.getVertex(face.vertex_ids[i]));
     }
 
-<<<<<<< HEAD
-	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh; Eigen::Vector4f hit; };
-=======
+
     auto intersectionPlane = intersectPlane(start, to, facenormal, vecs[0]);
     if (intersectionPlane.inter) {
         Eigen::Vector4f p_onPlane = intersectionPlane.point;
->>>>>>> dd5a8f61ec240b457e75e3e9570521ffe93c49a5
 
         float a = sign(p_onPlane, vecs[0], vecs[1]);
         float b = sign(p_onPlane, vecs[1], vecs[2]);
@@ -343,43 +340,6 @@ std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano:
 }
 
 std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
-<<<<<<< HEAD
-	
-	std::vector<Eigen::Vector3f> vecs;
-	float min_x = mesh.getVertex(0).x();
-	float max_x = mesh.getVertex(0).x();
-	
-	float min_y = mesh.getVertex(0).y();
-	float max_y = mesh.getVertex(0).y();
-
-	float min_z = mesh.getVertex(0).z();
-	float max_z = mesh.getVertex(0).z();
-
-	for (int i = 0; i < mesh.getNumberOfVertices(); i++) {
-		Eigen::Vector4f v = mesh.getVertex(i);
-		if (min_x > v.x()) {
-			min_x = v.x();
-		}
-		if (max_x < v.x()) {
-			max_x = v.x();
-		}
-		if (min_y > v.y()) {
-			min_y = v.y();
-		}
-		if (max_y < v.y()) {
-			max_y = v.y();
-		}
-		if (min_z > v.z()) {
-			min_z = v.z();
-		}
-		if (max_z < v.z()) {
-			max_z = v.z();
-		}
-	}
-	vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
-	vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
-	return vecs;
-=======
     std::vector<Eigen::Vector3f> vecs;
     float min_x = mesh.getVertex(0).x();
     float max_x = mesh.getVertex(0).x();
@@ -414,7 +374,6 @@ std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
     vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
     vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
     return vecs;
->>>>>>> dd5a8f61ec240b457e75e3e9570521ffe93c49a5
 }
 
 // checks intersection with bounding box
@@ -475,15 +434,6 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
 
 //shade()
 
-<<<<<<< HEAD
-void recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to) {
-
-	if (level == 0) {
-		return;
-	}
-
-	
-=======
 double distanceCalculate(double x1, double y1, double z1, double x2, double y2, double z2) {
     double x = x1 - x2; //calculating number to square in next step
     double y = y1 - y2;
@@ -494,11 +444,10 @@ double distanceCalculate(double x1, double y1, double z1, double x2, double y2, 
     dist = sqrt(dist);
 
     return dist;
->>>>>>> dd5a8f61ec240b457e75e3e9570521ffe93c49a5
 }
 
 Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
-                                    Tucano::Material::Phong phong) {
+                                    Tucano::Effects::PhongMaterial phong) {
 
     //return empty vector which is just supposed to be black
     if (!intersect(start, to, mesh).size() == 0) {
@@ -535,8 +484,7 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
     for (int i = 0; i < lights.size(); i++) {
         lightvecs.push_back(lights[i] - dest);
     }
-    recursiveraytracing(1, origin, dest, mesh, phong);;    //bounce one more ray
+    Eigen::Vector3f result = recursiveraytracing(1, origin, dest, mesh, phong);;    //bounce one more ray
 
-    return Eigen::Vector3f(rand() / (float) RAND_MAX, rand() / (float) RAND_MAX,
-                           rand() / (float) RAND_MAX);
+    return result;
 }
