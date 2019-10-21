@@ -33,7 +33,7 @@ void Flyscene::initialize(int width, int height) {
   lights.push_back(Eigen::Vector3f(-1.0, 1.0, 1.0));
 
   // scale the camera representation (frustum) for the ray debug
-  camerarep.shapeMatrix()->scale(0.2); 
+  camerarep.shapeMatrix()->scale(0.2);
 
   // the debug ray is a cylinder, set the radius and length of the cylinder
   ray.setSize(0.005, 10.0);
@@ -44,7 +44,7 @@ void Flyscene::initialize(int width, int height) {
   glEnable(GL_DEPTH_TEST);
 
   // for (int i = 0; i<mesh.getNumberOfFaces(); ++i){
-  //   Tucano::Face face = mesh.getFace(i);    
+  //   Tucano::Face face = mesh.getFace(i);
   //   for (int j =0; j<face.vertex_ids.size(); ++j){
   //     std::cout<<"vid "<<j<<" "<<face.vertex_ids[j]<<std::endl;
   //     std::cout<<"vertex "<<mesh.getVertex(face.vertex_ids[j]).transpose()<<std::endl;
@@ -117,11 +117,11 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 
   // direction from camera center to click position
   Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
-  
+
   // position and orient the cylinder representing the ray
   ray.setOriginOrientation(flycamera.getCenter(), dir);
 
-  // place the camera representation (frustum) on current camera location, 
+  // place the camera representation (frustum) on current camera location,
   camerarep.resetModelMatrix();
   camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
 }
@@ -200,11 +200,11 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	auto intersectionPlane = intersectPlane(start, to, facenormal, vecs[0]);
 	if (intersectionPlane.inter) {
 		Eigen::Vector4f p_onPlane = intersectionPlane.point;
-		
+
 		float a = sign(p_onPlane, vecs[0], vecs[1]);
 		float b = sign(p_onPlane, vecs[1], vecs[2]);
 		float c = sign(p_onPlane, vecs[2], vecs[0]);
-	
+
 
 		bool has_neg = (a < 0) || (b < 0) || (c < 0);
 		bool has_pos = (a > 0) || (b > 0) || (c > 0);
@@ -219,7 +219,7 @@ std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
 	std::vector<Eigen::Vector3f> vecs;
 	float min_x = mesh.getVertex(0).x();
 	float max_x = mesh.getVertex(0).x();
-	
+
 	float min_y = mesh.getVertex(0).y();
 	float max_y = mesh.getVertex(0).y();
 
@@ -255,7 +255,7 @@ std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
 // checks intersection with bounding box
 auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::Vector3f> box) {
 	struct result { bool inter; std::vector<Eigen::Vector3f> box; };
-	
+
 
 	float tmin_x = (box[0].x() - start.x()) / to.x();
 	float tmax_x = (box[1].x() - start.x()) / to.x();
@@ -265,7 +265,7 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::
 
 	float tmin_z = (box[0].z() - start.z()) / to.z();
 	float tmax_z = (box[1].z() - start.z()) / to.z();
-	
+
 	float tin_x = std::min(tmin_x, tmax_x);
 	float tout_x = std::max(tmin_x, tmax_x);
 
@@ -307,16 +307,15 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
 
 //shade()
 
-void recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to) {
+void recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
 
 	if (level == 0) {
 		return;
 	}
-
-
-
+    if (intersect(start, to, mesh).size()==0){
+        return Eigen::Vector3f();
+    }
 }
-
 
 
 
@@ -327,7 +326,7 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f& origin,
 
 	  //shot ray from origin to dest if it intersects?
 	Eigen::Vector3f origin_todes = origin - dest;
-	
+
 	// Get the light vector
 	std::vector<Eigen::Vector3f> lightvecs;
 
@@ -336,9 +335,8 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f& origin,
 	for (int i = 0; i < lights.size(); i++) {
 		lightvecs.push_back(lights[i] - dest);
 	}
-	
-	
-	//bounce one more ray
+    recursiveraytracing(1, origin, dest, mesh);
+;	//bounce one more ray
 
 	return Eigen::Vector3f(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX,
 		rand() / (float)RAND_MAX);
