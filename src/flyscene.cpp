@@ -333,14 +333,22 @@ double distanceCalculate(double x1, double y1, double z1, double x2, double y2, 
 Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
                                     Tucano::Material::Phong phong) {
 
+    //return empty vector which is just supposed to be black
     if (!intersect(start, to, mesh).size() == 0) {
         return Eigen::Vector3f();
     }
-    auto listOfVertices = intersect(start, to, mesh);
+    std::vector<Eigen::Vector3f> listOfVertices = intersect(start, to, mesh);
+    Eigen::Vector3f minVector(INT_MIN, INT_MIN, INT_MIN);
+    int minDistance = INT_MIN;
     for (int i = 0; i < listOfVertices.size(); i++) {
-        distanceCalculate()
+        double current = distanceCalculate(listOfVertices[i].x(), listOfVertices[i].y(), listOfVertices[i].z(), minVector.x(),
+                                           minVector.y(), minVector.z());
+        if (current < minDistance) {
+            minDistance = current;
+            minVector = listOfVertices[i];
+        }
     }
-    return intersect(start, to, mesh).x;
+    return minVector; //either return just the color or after the shading
 
 }
 
