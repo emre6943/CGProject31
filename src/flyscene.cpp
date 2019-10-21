@@ -190,7 +190,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	Eigen::Vector3f facenormal = face.normal;
 	std::vector<Eigen::Vector4f> vecs;
 
-	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh; Eigen::Vector4f hit};
+	struct result { bool inter; Tucano::Face face; Tucano::Mesh mesh; Eigen::Vector4f hit; };
 
 	for (int i = 0; i < 3; i++) {
 		int vertexid = face.vertex_ids[i];
@@ -215,7 +215,123 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 	return result{ false, face, mesh, vecs[0]};
 }
 
+
+//first box
+std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh) {
+	std::vector<Tucano::Face> box;
+	std::vector<std::vector<Tucano::Face>> boxes;
+	for (int i = 0; i < mesh.getNumberOfFaces; i++) {
+		box.push_back(mesh.getFace(i));
+	}
+	boxes.push_back(box);
+	createboxes(box, mesh, boxes);
+	return boxes;
+}
+//recursuve box
+auto createboxes(std::vector<Tucano::Face> box,Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>> boxes) {
+	std::vector<Tucano::Face> box1;
+	std::vector<Tucano::Face> box2;
+	
+	std::vector<Eigen::Vector3f> boxlim = getBoxLimits(box , mesh);
+	float xdiff = boxlim[1].x - boxlim[0].x;
+	float ydiff = boxlim[1].y - boxlim[0].y;
+	float zdiff = boxlim[1].z - boxlim[0].z;
+
+	float cut;
+	// CHOP CHOP PART NEEDS TO BE FINISHED 
+	if (xdiff > ydiff && xdiff > zdiff) {
+		cut = boxlim[2].x;
+		for (int i = 0; i < box.size(); i++) {
+			std::vector<GLuint> vecsofface = box[i].vertex_ids;
+
+			for (int a = 0; a < vecsofface.size(); a++) {
+				if(mesh.getVertex(vecsofface[a]).x < cut) {
+					if (box1.back != mesh.getFace(i)) {
+						box1.push_back(mesh.getFace(i));
+					}
+				}
+				else {
+					if (box2.back != mesh.getFace(i)) {
+						box2.push_back(mesh.getFace(i));
+					}
+				}
+			}
+		}
+	}
+	
+}
+
+//gives the min and max of the box
+std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh) {
+
+	std::vector<Eigen::Vector3f> vecs;
+	Eigen::Vector4f vec;
+
+	if (box.size() == 0) {
+		return vecs;
+	}
+
+	std::vector<GLuint> vecsofface;
+
+	for (int i = 0; i < box.size(); i++) {
+		for (int a = 0; a < box[i].vertex_ids.size(); i++) {
+			vecsofface.push_back(box[i].vertex_ids[a]);
+		}
+	}
+
+	float mean_x = 0;
+	float mean_y = 0;
+	float mean_z = 0;
+
+	vec = mesh.getVertex(vecsofface[0]);
+	
+	float min_x = vec.x();
+	float max_x = vec.x();
+
+	float min_y = vec.y();
+	float max_y = vec.y();
+
+	float min_z = vec.z();
+	float max_z = vec.z();
+
+	for (int i = 0; i < vecsofface.size(); i++) {
+		Eigen::Vector4f v = mesh.getVertex(vecsofface[i]);
+		
+		mean_x = mean_x + v.x();
+		mean_y = mean_y + v.y();
+		mean_z = mean_z + v.z();
+
+		if (min_x > v.x()) {
+			min_x = v.x();
+		}
+		if (max_x < v.x()) {
+			max_x = v.x();
+		}
+		if (min_y > v.y()) {
+			min_y = v.y();
+		}
+		if (max_y < v.y()) {
+			max_y = v.y();
+		}
+		if (min_z > v.z()) {
+			min_z = v.z();
+		}
+		if (max_z < v.z()) {
+			max_z = v.z();
+		}
+	}
+	mean_x = mean_x / vecsofface.size();
+	mean_y = mean_y / vecsofface.size();
+	mean_z = mean_z / vecsofface.size();
+
+	vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
+	vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
+	vecs.push_back(Eigen::Vector3f(mean_x, mean_y, mean_z));
+	return vecs;
+}
+
 std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
+	
 	std::vector<Eigen::Vector3f> vecs;
 	float min_x = mesh.getVertex(0).x();
 	float max_x = mesh.getVertex(0).x();
@@ -285,7 +401,7 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::
 	return result{ true , box };
 
 }
-// bounding box creation
+
 
 //intersect of one vector to the universe
 auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
@@ -313,8 +429,7 @@ void recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to) {
 		return;
 	}
 
-
-
+	
 }
 
 
