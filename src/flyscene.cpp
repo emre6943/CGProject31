@@ -232,7 +232,6 @@ std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh) {
     for (int i = 0; i < mesh.getNumberOfFaces; i++) {
         box.push_back(mesh.getFace(i));
     }
-    boxes.push_back(box);
     createboxes(box, mesh, boxes);
     return boxes;
 }
@@ -250,7 +249,8 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
     float cut;
 
 	if (box.size() < 200) {
-		return;
+		boxes.push_back(box);
+		return boxes;
 	}
     
     if (xdiff > ydiff && xdiff > zdiff) {
@@ -307,8 +307,6 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
 		}
 	}
 
-	boxes.push_back(box1);
-	boxes.push_back(box2);
 	createboxes(box1, mesh, boxes);
 	createboxes(box2, mesh, boxes);
 
@@ -383,59 +381,24 @@ std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano:
     return vecs;
 }
 
-std::vector<Eigen::Vector3f> getboundingBox(Tucano::Mesh mesh) {
-    std::vector<Eigen::Vector3f> vecs;
-    float min_x = mesh.getVertex(0).x();
-    float max_x = mesh.getVertex(0).x();
-
-    float min_y = mesh.getVertex(0).y();
-    float max_y = mesh.getVertex(0).y();
-
-    float min_z = mesh.getVertex(0).z();
-    float max_z = mesh.getVertex(0).z();
-
-    for (int i = 0; i < mesh.getNumberOfVertices(); i++) {
-        Eigen::Vector4f v = mesh.getVertex(i);
-        if (min_x > v.x()) {
-            min_x = v.x();
-        }
-        if (max_x < v.x()) {
-            max_x = v.x();
-        }
-        if (min_y > v.y()) {
-            min_y = v.y();
-        }
-        if (max_y < v.y()) {
-            max_y = v.y();
-        }
-        if (min_z > v.z()) {
-            min_z = v.z();
-        }
-        if (max_z < v.z()) {
-            max_z = v.z();
-        }
-    }
-    vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
-    vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
-    return vecs;
-}
 
 // checks intersection with bounding box
-auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::Vector3f> box) {
-    struct result {
-        bool inter;
-        std::vector<Eigen::Vector3f> box;
-    };
+auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes, std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node , Tucano::Mesh mesh) {
+	struct result {
+		bool inter;
+		Tucano::Face face;
+		Eigen::Vector4f hit;
+	};
+	
+	
+    float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
+    float tmax_x = (boxbounds[inter_node][1].x() - start.x()) / to.x();
 
+    float tmin_y = (boxbounds[inter_node][0].y() - start.y()) / to.y();
+    float tmax_y = (boxbounds[inter_node][1].y() - start.y()) / to.y();
 
-    float tmin_x = (box[0].x() - start.x()) / to.x();
-    float tmax_x = (box[1].x() - start.x()) / to.x();
-
-    float tmin_y = (box[0].y() - start.y()) / to.y();
-    float tmax_y = (box[1].y() - start.y()) / to.y();
-
-    float tmin_z = (box[0].z() - start.z()) / to.z();
-    float tmax_z = (box[1].z() - start.z()) / to.z();
+    float tmin_z = (boxbounds[inter_node][0].z() - start.z()) / to.z();
+    float tmax_z = (boxbounds[inter_node][1].z() - start.z()) / to.z();
 
     float tin_x = std::min(tmin_x, tmax_x);
     float tout_x = std::max(tmin_x, tmax_x);
@@ -450,35 +413,53 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<Eigen::
     float tout = 1;
 
     if ((tin > tout) || (tout < 0)) {
-        return result{false, box};
+		if (boxes.size() <= inter_node) {
+			return result{ false, boxes[0][0] , Eigen::Vector4f(0,0,0,0)};
+		}
+		return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh);
     }
 
-    return result{true, box};
+	for (int i = 0; i < boxes[inter_node].size(); i++) {
+		auto ans = intersectTriange(start, to, boxes[inter_node][i], mesh);
+			if (ans.inter) {
+				return result{ true, ans.face, ans.hit };
+			}
+	}
+    return result{ false, boxes[0][0] , Eigen::Vector4f(0,0,0,0) };
 
 }
 
 //we need the face id and vertex of intersection to be used in the recursive function
 struct faceAttributes {
-    int id;
+	bool hit;
+    Tucano::Face face;
     Eigen::Vector3f hitPoint;
 };
 
+
+//INTERSECT RETURNS A STRUCTURE 
+// intersect(start, to, mesh).inter -> returns true if there is a intersection
+// intersect(start, to, mesh).face -> returns the face that it hit if it didnt hit returns a random face
+// intersect(start, to, mesh).hit -> returns the vec3f that it hit if it didnt hit returns a random hit point
 //intersect of one vector to the universe
-std::vector<faceAttributes> intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
-    std::vector<std::vector<Eigen::Vector3f>> boxes;
-    std::vector<Eigen::Vector3f> hits;
-    for (int i = 0; i < boxes.size(); i++) {//we need to go over all the meshes
-        boxes.push_back(getboundingBox(mesh));
-        if (intersectBox(start, to, boxes[i]).inter) {
-            for (int a = 0; a < mesh.getNumberOfFaces; a) {
-                auto hit = intersectTriange(start, to, mesh.getFace(a), mesh);
-                if (hit.inter) {
-                    hits.push_back(Eigen::Vector3f(hit.hit.x, hit.hit.y, hit.hit.z));
-                }
-            }
-        }
-    }
-    return hits;
+auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
+	struct result {
+		bool inter;
+		Tucano::Face face;
+		Eigen::Vector4f hit;
+	};
+	std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
+	std::vector<std::vector<Eigen::Vector3f>> boxbounds;
+	for (int i = 0; i < boxes.size(); i++) {
+		boxbounds.push_back(getBoxLimits(boxes[i], mesh));
+	}
+
+	auto ans = intersectBox(start, to, boxes, boxbounds, 0, mesh);
+	if (ans.inter) {
+		return result{ true, ans.face, Eigen::Vector3f(ans.hit.x(),ans.hit.y(),ans.hit.z())};
+	}
+
+    return result{ false, boxes[0][0] , Eigen::Vector3f(0,0,0,0) };
 }
 
 Eigen::Vector3f reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
@@ -509,7 +490,7 @@ Eigen::Vector3f directIllumination(const Eigen::Vector3f &I, const Eigen::Vector
 Eigen::Vector3f shade(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
                       Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights) {
     //return empty vector which is just supposed to be black
-    if (!intersect(start, to, mesh).size() == 0) {
+    if (intersect(start, to, mesh).inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
@@ -534,12 +515,16 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
                                     Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights) {
 
     //return empty vector which is just supposed to be black
-    if (!intersect(start, to, mesh).size() == 0) {
+    if (intersect(start, to, mesh).inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
         return start; //WE NEED to return color of current vertex we are at but we are just returning it's coords now just so it compiles
     }
+	//INTERSECT RETURNS A STRUCTURE 
+	// intersect(start, to, mesh).inter -> returns true if there is a intersection
+	// intersect(start, to, mesh).face -> returns the face that it hit if it didnt hit returns a random face
+	// intersect(start, to, mesh).hit -> returns the vec3f that it hit if it didnt hit returns a random hit point
     std::vector<faceAttributes> listOfVertices = intersect(start, to, mesh);
     Eigen::Vector3f closestVertex(INT_MAX, INT_MAX, INT_MAX);
     int minDistance = INT_MAX;
@@ -555,6 +540,10 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
             closestFace = listOfVertices[i];
         }
     }
+	//INTERSECT RETURNS A STRUCTURE 
+	// intersect(start, to, mesh).inter -> returns true if there is a intersection
+	// intersect(start, to, mesh).face -> returns the face that it hit if it didnt hit returns a random face
+	// intersect(start, to, mesh).hit -> returns the vec3f that it hit if it didnt hit returns a random hit point
     return shade(level, closestVertex, reflect(closestVertex - start, mesh.getFace(closestFace.id).normal),
                  mesh, phong, lights); //either return just the color or after the shading
 }
