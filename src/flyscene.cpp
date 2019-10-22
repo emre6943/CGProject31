@@ -442,17 +442,18 @@ struct faceAttributes {
 // intersect(start, to, mesh).face -> returns the face that it hit if it didnt hit returns a random face
 // intersect(start, to, mesh).hit -> returns the vec3f that it hit if it didnt hit returns a random hit point
 //intersect of one vector to the universe
-auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
+// FOR THE ACCELERATION YOU NEED TO FEED INTERSECT METHOD WITH THOSE CREATE THEM BEFORE LOOPING THEY ARE EXPENSIVE
+//std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
+//std::vector<std::vector<Eigen::Vector3f>> boxbounds;
+//for (int i = 0; i < boxes.size(); i++) {
+//boxbounds.push_back(getBoxLimits(boxes[i], mesh));
+//}
+auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>> boxes, std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
 	struct result {
 		bool inter;
 		Tucano::Face face;
 		Eigen::Vector4f hit;
 	};
-	std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
-	std::vector<std::vector<Eigen::Vector3f>> boxbounds;
-	for (int i = 0; i < boxes.size(); i++) {
-		boxbounds.push_back(getBoxLimits(boxes[i], mesh));
-	}
 
 	auto ans = intersectBox(start, to, boxes, boxbounds, 0, mesh);
 	if (ans.inter) {
@@ -461,6 +462,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh) {
 
     return result{ false, boxes[0][0] , Eigen::Vector3f(0,0,0,0) };
 }
+
 
 Eigen::Vector3f reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
     return I - 2 * I.dot(N) * N;
