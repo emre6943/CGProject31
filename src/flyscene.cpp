@@ -33,6 +33,10 @@ void Flyscene::initialize(int width, int height) {
     // create a first ray-tracing light source at some random position
     lights.push_back(Eigen::Vector3f(-1.0, 1.0, 1.0));
 
+	//set the color and the size of our debugOrbRep
+	debugOrbRep.setColor(Eigen::Vector4f(1.0, 0.0, 0.0, 1.0));
+	debugOrbRep.setSize(.08);
+
     // scale the camera representation (frustum) for the ray debug
     camerarep.shapeMatrix()->scale(0.2);
 
@@ -87,6 +91,13 @@ void Flyscene::paintGL(void) {
         lightrep.modelMatrix()->translate(lights[i]);
         lightrep.render(flycamera, scene_light);
     }
+
+	//render the debugOrbRep's as red spheres
+	for (int i = 0; i < debugOrbs.size(); i++) {
+		debugOrbRep.resetModelMatrix();
+		debugOrbRep.modelMatrix()->translate(debugOrbs[i]);
+		debugOrbRep.render(flycamera, scene_light);
+	}
 
     // render coordinate system at lower right corner
     flycamera.renderAtCorner();
@@ -555,3 +566,18 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
 }
 
 
+void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
+	ray.resetModelMatrix();
+	// from pixel position to world coordinates
+	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
+
+	// direction from camera center to click position
+	Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
+
+	// position and orient the cylinder representing the ray
+	ray.setOriginOrientation(flycamera.getCenter(), dir);
+
+	// place the camera representation (frustum) on current camera location,
+	camerarep.resetModelMatrix();
+	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+}

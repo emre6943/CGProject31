@@ -91,6 +91,12 @@ private:
   // light sources for ray tracing
   vector<Eigen::Vector3f> lights;
 
+  // a ball that will represend the intersections found with our intersection method in the debug ray.
+  Tucano::Shapes::Sphere debugOrbRep;
+
+  // the points were a debugOrbRep will be rendered.
+  vector<Eigen::Vector3f> debugOrbs;
+
   // Scene light represented as a camera
   Tucano::Camera scene_light;
 
