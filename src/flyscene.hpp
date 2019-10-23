@@ -69,6 +69,8 @@ public:
    */
   Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest);
 
+  Eigen::Vector3f reflect(const Eigen::Vector3f& I, const Eigen::Vector3f& N);
+
 private:
   // A simple phong shader for rendering meshes
   Tucano::Effects::PhongMaterial phong;

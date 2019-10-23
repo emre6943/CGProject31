@@ -5,6 +5,7 @@
 void Flyscene::initialize(int width, int height) {
     // initiliaze the Phong Shading effect for the Opengl Previewer
     phong.initialize();
+	
 
     // set the camera's projection matrix
     flycamera.setPerspectiveMatrix(60.0, width / (float) height, 0.1f, 100.0f);
@@ -110,21 +111,7 @@ void Flyscene::simulate(GLFWwindow *window) {
     flycamera.translate(dx, dy, dz);
 }
 
-void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
-    ray.resetModelMatrix();
-    // from pixel position to world coordinates
-    Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
-    // direction from camera center to click position
-    Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
-
-    // position and orient the cylinder representing the ray
-    ray.setOriginOrientation(flycamera.getCenter(), dir);
-
-    // place the camera representation (frustum) on current camera location,
-    camerarep.resetModelMatrix();
-    camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
-}
 
 void Flyscene::raytraceScene(int width, int height) {
     std::cout << "ray tracing ..." << std::endl;
@@ -177,7 +164,7 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
     }
 
     float t = (distance - (start.dot(normal))) / (to.dot(normal));
-    point = ((start + t * to), p_onPlane.w);
+    point = Eigen::Vector4f((start + t * to), p_onPlane.w());
     return result{true, t, point};
 }
 
@@ -225,16 +212,9 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 }
 
 
-//first box
-std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh) {
-    std::vector<Tucano::Face> box;
-    std::vector<std::vector<Tucano::Face>> boxes;
-    for (int i = 0; i < mesh.getNumberOfFaces; i++) {
-        box.push_back(mesh.getFace(i));
-    }
-    createboxes(box, mesh, boxes);
-    return boxes;
-}
+
+// telling the compiler this method exists so it can be used in createboxes
+std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh);
 
 //recursuve box
 auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>> boxes) {
@@ -242,9 +222,9 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
     std::vector<Tucano::Face> box2;
 
     std::vector<Eigen::Vector3f> boxlim = getBoxLimits(box, mesh);
-    float xdiff = boxlim[1].x - boxlim[0].x;
-    float ydiff = boxlim[1].y - boxlim[0].y;
-    float zdiff = boxlim[1].z - boxlim[0].z;
+    float xdiff = boxlim[1].x() - boxlim[0].x();
+    float ydiff = boxlim[1].y() - boxlim[0].y();
+    float zdiff = boxlim[1].z() - boxlim[0].z();
 
     float cut;
 
@@ -254,16 +234,18 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
 	}
     
     if (xdiff > ydiff && xdiff > zdiff) {
-        cut = boxlim[2].x;
+        cut = boxlim[2].x();
         for (int i = 0; i < box.size(); i++) {
             std::vector<GLuint> vecsofface = box[i].vertex_ids;
             for (int a = 0; a < vecsofface.size(); a++) {
-                if (mesh.getVertex(vecsofface[a]).x < cut) {
-                    if (box1.back != mesh.getFace(i)) {
+                if (mesh.getVertex(vecsofface[a]).x() < cut) {
+					// i changed this code so it compares the vertecis of the face, since we dont have an operated == operator for the face
+					if (box1.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] && box1.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] && box1.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
                         box1.push_back(mesh.getFace(i));
                     }
                 } else {
-                    if (box2.back != mesh.getFace(i)) {
+					//changed this the same as the code above
+                    if (box2.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] && box2.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] && box2.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
                         box2.push_back(mesh.getFace(i));
                     }
                 }
@@ -271,17 +253,17 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
         }
     }
 	else if (ydiff > xdiff && ydiff > zdiff) {
-		cut = boxlim[2].y;
+		cut = boxlim[2].y();
 		for (int i = 0; i < box.size(); i++) {
 			std::vector<GLuint> vecsofface = box[i].vertex_ids;
 			for (int a = 0; a < vecsofface.size(); a++) {
-				if (mesh.getVertex(vecsofface[a]).y < cut) {
-					if (box1.back != mesh.getFace(i)) {
+				if (mesh.getVertex(vecsofface[a]).y() < cut) {
+					if (box1.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] && box1.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] && box1.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
 						box1.push_back(mesh.getFace(i));
 					}
 				}
 				else {
-					if (box2.back != mesh.getFace(i)) {
+					if (box2.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] && box2.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] && box2.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
 						box2.push_back(mesh.getFace(i));
 					}
 				}
@@ -289,17 +271,17 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
 		}
 	}
 	else  {
-		cut = boxlim[2].z;
+		cut = boxlim[2].z();
 		for (int i = 0; i < box.size(); i++) {
 			std::vector<GLuint> vecsofface = box[i].vertex_ids;
 			for (int a = 0; a < vecsofface.size(); a++) {
-				if (mesh.getVertex(vecsofface[a]).z < cut) {
-					if (box1.back != mesh.getFace(i)) {
+				if (mesh.getVertex(vecsofface[a]).z() < cut) {
+					if (box1.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] && box1.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] && box1.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
 						box1.push_back(mesh.getFace(i));
 					}
 				}
 				else {
-					if (box2.back != mesh.getFace(i)) {
+					if (box2.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] && box2.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] && box2.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
 						box2.push_back(mesh.getFace(i));
 					}
 				}
@@ -310,6 +292,17 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
 	createboxes(box1, mesh, boxes);
 	createboxes(box2, mesh, boxes);
 
+}
+
+//first box
+std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh) {
+	std::vector<Tucano::Face> box;
+	std::vector<std::vector<Tucano::Face>> boxes;
+	for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+		box.push_back(mesh.getFace(i));
+	}
+	createboxes(box, mesh, boxes);
+	return boxes;
 }
 
 //gives the min and max of the box
@@ -464,7 +457,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 }
 
 
-Eigen::Vector3f reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
+Eigen::Vector3f Flyscene::reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
     return I - 2 * I.dot(N) * N;
 }
 /* NOTE: whoever will implement hard shadow from a point, you need to check in the 2nd for loop, whether there is a face
@@ -560,3 +553,5 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
 
     return result;
 }
+
+
