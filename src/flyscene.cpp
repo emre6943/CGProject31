@@ -509,16 +509,16 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
                                     std::vector<std::vector<Tucano::Face>> boxes,
                                     std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
     //return empty vector which is just supposed to be black
-    if (!intersect(start, to, mesh, boxes, boxbounds).inter) {
+	auto intersection = intersect(start, to, mesh, boxes, boxbounds);
+    if (!intersection.inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
         return start; //WE NEED to return color of current vertex we are at but we are just returning it's coords now just so it compiles
     }
-    return shade(level, intersect(start, to, mesh, boxes, boxbounds).hit,
-                 reflect(intersect(start, to, mesh, boxes, boxbounds).hit - start,
-                         intersect(start, to, mesh, boxes, boxbounds).face.normal),
-                 mesh, phong, lights); //either return just the color or after the shading
+    return shade(level, intersection.hit,
+                 reflect(intersection.hit - start,intersection.face.normal),
+                 mesh, phong, lights, boxes, boxbounds); //either return just the color or after the shading
 }
 
 
@@ -548,6 +548,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 
     // position and orient the cylinder representing the ray
     ray.setOriginOrientation(flycamera.getCenter(), dir);
+
 
     // place the camera representation (frustum) on current camera location,
     camerarep.resetModelMatrix();
