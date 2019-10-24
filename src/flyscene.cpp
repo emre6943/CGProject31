@@ -174,12 +174,13 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
     }
 
     float t = (distance - (start.dot(normal))) / (to.dot(normal));
-    point = Eigen::Vector4f((start + t * to), p_onPlane.w());
+    Eigen::Vector3f xyz = (start + t * to);
+    point = Eigen::Vector4f(xyz.x(), xyz.y(), xyz.z(), p_onPlane.w());
     return result{true, t, point};
 }
 
 // a method used in triangle intersection
-float sign(Eigen::Vector3f p1, Eigen::Vector4f p2, Eigen::Vector4f p3) {
+float sign(Eigen::Vector4f p1, Eigen::Vector4f p2, Eigen::Vector4f p3) {
     return ((p1.x() - p3.x()) * (p2.y() - p3.y())) - ((p2.x() - p3.x()) * (p1.y() - p3.y()));
 }
 
@@ -452,7 +453,7 @@ intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vec
     struct result {
         bool inter;
         Tucano::Face face;
-        Eigen::Vector4f hit;
+        Eigen::Vector3f hit;
     };
 
     auto ans = intersectBox(start, to, boxes, boxbounds, 0, mesh);
@@ -518,7 +519,8 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
         // will determine if this is enough or they need to output color from this functions somehow.
     }
     return shade(level, intersection.hit,
-                 reflect(intersection.hit - start, intersection.face.normal),
+                 reflect(intersection.hit.head<3>() - start, //ignoring the 4th dimension of intersection? is this correct?
+                         intersection.face.normal),
                  mesh, phong, lights, boxes, boxbounds); //either return just the color or after the shading
 }
 
