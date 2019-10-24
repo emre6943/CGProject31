@@ -509,15 +509,16 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
                                     std::vector<std::vector<Tucano::Face>> boxes,
                                     std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
     //return empty vector which is just supposed to be black
-	auto intersection = intersect(start, to, mesh, boxes, boxbounds);
+    auto intersection = intersect(start, to, mesh, boxes, boxbounds);
     if (!intersection.inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
-        return start; //WE NEED to return color of current vertex we are at but we are just returning it's coords now just so it compiles
+        return start; //returns the coordinates for right now. whoever is working on shading and this function,
+        // will determine if this is enough or they need to output color from this functions somehow.
     }
     return shade(level, intersection.hit,
-                 reflect(intersection.hit - start,intersection.face.normal),
+                 reflect(intersection.hit - start, intersection.face.normal),
                  mesh, phong, lights, boxes, boxbounds); //either return just the color or after the shading
 }
 
