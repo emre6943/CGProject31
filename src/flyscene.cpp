@@ -468,7 +468,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 }
 
 
-Eigen::Vector3f Flyscene::reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
+Eigen::Vector3f reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
     return I - 2 * I.dot(N) * N;
 }
 /* NOTE: whoever will implement hard shadow from a point, you need to check in the 2nd for loop, whether there is a face
