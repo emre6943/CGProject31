@@ -460,7 +460,7 @@ intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vec
         return result{true, ans.face, Eigen::Vector3f(ans.hit.x(), ans.hit.y(), ans.hit.z())};
     }
 
-    return result{false, boxes[0][0], Eigen::Vector3f(0, 0, 0, 0)};
+    return result{false, boxes[0][0], Eigen::Vector3f(0, 0, 0)};
 }
 
 
