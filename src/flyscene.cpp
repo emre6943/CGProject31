@@ -365,8 +365,8 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
     std::vector<Tucano::Face> box1;
     std::vector<Tucano::Face> box2;
 
-	//if box has less that 200 faces then push it to boxes
-	if (box.size() < 200) {
+	//if box has less that 345 faces then push it to boxes
+	if (box.size() < 345) {
 		boxes.push_back(box);
 		return;
 	}
@@ -383,17 +383,16 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 
 	std::cout << "red1 " << std::endl;
 	//if x diff is the highest cut from there
-    if (xdiff >= ydiff && xdiff >= zdiff) {
+    if (xdiff > ydiff && xdiff > zdiff) {
 		//contains the mean
         cut = boxlim[2].x();
 
 		std::cout << " cut from x " << std::endl;
         for (int i = 0; i < box.size(); i++) {
-			bool box1con = contains(box1, box[i]);
-			bool box2con = contains(box2, box[i]);
+			bool box1con = false;
+			bool box2con = false;
 			std::cout << box.size() << std::endl;
             for (int a = 0; a < box[i].vertex_ids.size(); a++) {
-				std::cout << i << std::endl;
 				if (mesh.getVertex(box[i].vertex_ids[a]).x() < cut) {
 					if (!box1con) {
 						box1.push_back(box[i]);
@@ -415,9 +414,8 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
         cut = boxlim[2].y();
 		std::cout << box.size() << std::endl;
         for (int i = 0; i < box.size(); i++) {
-			std::cout << i << std::endl;
-			bool box1con = contains(box1, box[i]);
-			bool box2con = contains(box2, box[i]);
+			bool box1con = false;
+			bool box2con = false;
 
             for (int a = 0; a < box[i].vertex_ids.size(); a++) {
 				if (mesh.getVertex(box[i].vertex_ids[a]).y() < cut) {
@@ -441,9 +439,8 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
         cut = boxlim[2].z();
 		std::cout << box.size() << std::endl;
         for (int i = 0; i < box.size(); i++) {
-			std::cout << i << std::endl;
-			bool box1con = contains(box1, box[i]);
-			bool box2con = contains(box2, box[i]);
+			bool box1con = false;
+			bool box2con = false;
             for (int a = 0; a < box[i].vertex_ids.size(); a++) {
                 if (mesh.getVertex(box[i].vertex_ids[a]).z() < cut) {
 					if (!box1con) {
@@ -483,6 +480,7 @@ std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
 std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes,
                   std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node, Tucano::Mesh mesh, std::vector<HitData>& hits) {
 	std::cout << "BOXessss " << boxes.size() << std::endl;
+	std::cout << "WE ARE " << inter_node << std::endl;
 	std::cout << "BOX SIZE "<< boxes[inter_node].size() << std::endl;
 
 	if (boxes[inter_node].size() == 0) {
@@ -493,6 +491,7 @@ std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std
 
 	if (boxes.size() <= inter_node ) {
 		return hits;
+		std::cout << " returned " << std::endl;
 	}
 	std::cout << "red2 " << std::endl;
     float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
@@ -557,6 +556,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 	std::vector<HitData> lolz;
 
     std::vector<HitData> hits = intersectBox(start, to, boxes, boxbounds, 0, mesh, lolz);
+	std::cout << "hits size " <<hits.size()<< std::endl;
 	if (hits.size() == 0) {
 		return result{ false, mesh.getFace(0), Eigen::Vector3f(Eigen::Vector3f(0, 0, 0)) };
 	}
@@ -574,6 +574,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 		}
 	}
     
+	std::cout << "the one " << the_one << std::endl;
 
     return result{true, hits[the_one].face, hits[the_one].gethit()};
 }
@@ -700,6 +701,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 	std::cout << "debug " << std::endl;
 	auto intersection = intersect(screen_pos, dir, mesh, boxes, boxbounds);
 
+	std::cout << "inter " << intersection.inter << std::endl;
 	if (intersection.inter) {
 		//reflection
 		ray.setSize(0.005, distance(screen_pos, intersection.hit));
@@ -714,7 +716,8 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 
 		Eigen::Vector3f refraction = refract(dir, facenorm, air, material);
 		refractionRay.setOriginOrientation(intersection.hit, refraction);
-	
+		
+		std::cout << "arranged " << std::endl;
 	}
 	else {
 		ray.setSize(0.005, 10.0);
