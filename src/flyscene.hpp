@@ -67,9 +67,13 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest);
+  Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest, std::vector<std::vector<Tucano::Face>>& boxes, std::vector<std::vector<Eigen::Vector3f>>& boxbounds);
 
-  Eigen::Vector3f reflect(const Eigen::Vector3f& I, const Eigen::Vector3f& N);
+  std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh);
+
+  std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh);
+  
+  void createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>>& boxes);
 
 private:
   // A simple phong shader for rendering meshes
@@ -102,6 +106,8 @@ private:
 
   /// A very thin cylinder to draw a debug ray
   Tucano::Shapes::Cylinder ray = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+  Tucano::Shapes::Cylinder reflectionRay = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+  Tucano::Shapes::Cylinder refractionRay = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
 
   // Scene meshes
   Tucano::Mesh mesh;

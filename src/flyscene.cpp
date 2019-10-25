@@ -42,6 +42,8 @@ void Flyscene::initialize(int width, int height) {
 
     // the debug ray is a cylinder, set the radius and length of the cylinder
     ray.setSize(0.005, 10.0);
+	reflectionRay.setSize(0.005, 10.0);
+	refractionRay.setSize(0.005, 10.0);
 
     // craete a first debug ray pointing at the center of the screen
     createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
@@ -126,6 +128,12 @@ void Flyscene::simulate(GLFWwindow *window) {
 void Flyscene::raytraceScene(int width, int height) {
     std::cout << "ray tracing ..." << std::endl;
 
+	std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
+	std::vector<std::vector<Eigen::Vector3f>> boxbounds;
+	for (int i = 0; i < boxes.size(); i++) {
+		boxbounds.push_back(getBoxLimits(boxes[i], mesh));
+	}
+
     // if no width or height passed, use dimensions of current viewport
     Eigen::Vector2i image_size(width, height);
     if (width == 0 || height == 0) {
@@ -148,7 +156,7 @@ void Flyscene::raytraceScene(int width, int height) {
             // create a ray from the camera passing through the pixel (i,j)
             screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
             // launch raytracing for the given ray and write result to pixel data
-            pixel_data[i][j] = traceRay(origin, screen_coords);
+            pixel_data[i][j] = traceRay(origin, screen_coords, boxes, boxbounds);
         }
     }
 
@@ -223,7 +231,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 }
 
 //gives the min and max of the box
-std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh) {
+std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh) {
 
     std::vector<Eigen::Vector3f> vecs;
     Eigen::Vector4f vec;
@@ -292,11 +300,11 @@ std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano:
 }
 
 //recursuve box
-auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>> boxes) {
+void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>>& boxes) {
     std::vector<Tucano::Face> box1;
     std::vector<Tucano::Face> box2;
 
-    std::vector<Eigen::Vector3f> boxlim = getBoxLimits(box, mesh);
+	std::vector<Eigen::Vector3f> boxlim = Flyscene::getBoxLimits(box, mesh);
     float xdiff = boxlim[1].x() - boxlim[0].x();
     float ydiff = boxlim[1].y() - boxlim[0].y();
     float zdiff = boxlim[1].z() - boxlim[0].z();
@@ -305,7 +313,7 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
 
     if (box.size() < 200) {
         boxes.push_back(box);
-        return boxes;
+        return;
     }
 
     if (xdiff > ydiff && xdiff > zdiff) {
@@ -378,7 +386,7 @@ auto createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<s
 }
 
 //first box
-std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh) {
+std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
     std::vector<Tucano::Face> box;
     std::vector<std::vector<Tucano::Face>> boxes;
     for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
@@ -397,7 +405,9 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::ve
         Eigen::Vector4f hit;
     };
 
-
+	if (boxes.size() <= inter_node) {
+		return result{ false, boxes[0][0], Eigen::Vector4f(0, 0, 0, 0) };
+	}
     float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
     float tmax_x = (boxbounds[inter_node][1].x() - start.x()) / to.x();
 
@@ -447,9 +457,7 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::ve
 //for (int i = 0; i < boxes.size(); i++) {
 //boxbounds.push_back(getBoxLimits(boxes[i], mesh));
 //}
-auto
-intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>> boxes,
-          std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
+auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>> boxes, std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
     struct result {
         bool inter;
         Tucano::Face face;
@@ -457,6 +465,7 @@ intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vec
     };
 
     auto ans = intersectBox(start, to, boxes, boxbounds, 0, mesh);
+	// distance en yakin olani return le
     if (ans.inter) {
         return result{true, ans.face, Eigen::Vector3f(ans.hit.x(), ans.hit.y(), ans.hit.z())};
     }
@@ -464,8 +473,18 @@ intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std::vec
     return result{false, boxes[0][0], Eigen::Vector3f(0, 0, 0)};
 }
 
+// src = raytracing slight
+Eigen::Vector3f refract(Eigen::Vector3f v, Eigen::Vector3f normal, float n1, float n2) {
+	Eigen::Vector3f vnor = v.normalized();
+	Eigen::Vector3f nnor = normal.normalized();
+	float cosangle = vnor.dot(nnor);
+	float snel = n1 / n2;
+	float dot = v.dot(normal);
 
-Eigen::Vector3f reflect(const Eigen::Vector3f &I, const Eigen::Vector3f &N) {
+	return snel * (v - dot * normal) - normal * sqrt(1 - pow(snel,2)*(1-pow(dot,2)));
+}
+
+Eigen::Vector3f reflect(const Eigen::Vector3f I, const Eigen::Vector3f N) {
     return I - 2 * I.dot(N) * N;
 }
 
@@ -525,15 +544,9 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
 }
 
 
-Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
-                                   Eigen::Vector3f &dest) {
+Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest ,std::vector<std::vector<Tucano::Face>> &boxes, std::vector<std::vector<Eigen::Vector3f>> &boxbounds) {
     // just some fake random color per pixel until you implement your ray tracing
     // remember to return your RGB values as floats in the range [0, 1]!!!
-    std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
-    std::vector<std::vector<Eigen::Vector3f>> boxbounds;
-    for (int i = 0; i < boxes.size(); i++) {
-        boxbounds.push_back(getBoxLimits(boxes[i], mesh));
-    }
     Eigen::Vector3f result = recursiveraytracing(1, origin, dest, mesh, phong, lights, boxes,
                                                  boxbounds);   //bounce one more ray
 
@@ -541,8 +554,19 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
 }
 
 
+float distance(Eigen::Vector3f a, Eigen::Vector3f b) {
+	float x = a.x() - b.x();
+	float y = a.y() - b.y();
+	float z = a.z() - b.z();
+
+	return sqrt(pow(x,2)+ pow(y, 2)+ pow(z, 2));
+}
+
 void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
     ray.resetModelMatrix();
+	reflectionRay.resetModelMatrix();
+	refractionRay.resetModelMatrix();
+	
     // from pixel position to world coordinates
     Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
@@ -551,9 +575,40 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 
     // position and orient the cylinder representing the ray
     ray.setOriginOrientation(flycamera.getCenter(), dir);
+	reflectionRay.setOriginOrientation(flycamera.getCenter(), dir);
+	refractionRay.setOriginOrientation(flycamera.getCenter(), dir);
 
 
     // place the camera representation (frustum) on current camera location,
     camerarep.resetModelMatrix();
     camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+
+	std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
+	std::vector<std::vector<Eigen::Vector3f>> boxbounds;
+	for (int i = 0; i < boxes.size(); i++) {
+		boxbounds.push_back(getBoxLimits(boxes[i], mesh));
+	}
+
+	auto intersection = intersect(screen_pos, dir, mesh, boxes, boxbounds);
+
+	if (intersection.inter) {
+		//reflection
+		ray.setSize(0.005, distance(screen_pos, intersection.hit));
+		Eigen::Vector3f facenorm = intersection.face.normal.normalized();
+		Eigen::Vector3f reflection = reflect(dir, facenorm);
+		reflectionRay.setOriginOrientation(intersection.hit, reflection);
+		
+
+		// src = your slights
+		float air = 1.0;
+		float material = materials[intersection.face.material_id].getOpticalDensity();
+
+		Eigen::Vector3f refraction = refract(dir, facenorm, air, material);
+		refractionRay.setOriginOrientation(intersection.hit, refraction);
+	
+	}
+	else {
+		ray.setSize(0.005, 10.0);
+	}
+
 }
