@@ -206,8 +206,8 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
         Eigen::Vector4f hit;
     };
 
-    for (int i = 0; i < 3; i++) {
-        int vertexid = face.vertex_ids[i];
+    for (int i = 0; i < face.vertex_ids.size(); i++) {
+
         vecs.push_back(mesh.getVertex(face.vertex_ids[i]));
     }
 
@@ -230,7 +230,24 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
     return result{false, face, mesh, vecs[0]};
 }
 
-//gives the min and max of the box
+//Object for git info
+class HitData
+{
+	// Access specifier 
+public:
+
+	// Data Members
+	Tucano::Face face;
+	Eigen::Vector4f hit;
+	
+	// Member Functions() 
+	Eigen::Vector3f gethit() {
+		Eigen::Vector3f v = Eigen::Vector3f(hit.x(), hit.y(), hit.z());
+		return v;
+	}
+};
+
+//gives the min and max of the box AND THE MEAN
 std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh) {
 
     std::vector<Eigen::Vector3f> vecs;
@@ -301,9 +318,18 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
 
 //recursuve box
 void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>>& boxes) {
+	// box is a vector with faces
+	// boxes is a vector with boxes so vector -> vector(faces)
     std::vector<Tucano::Face> box1;
     std::vector<Tucano::Face> box2;
 
+	//if box has less that 200 faces then push it to boxes
+	if (box.size() < 200) {
+		boxes.push_back(box);
+		return;
+	}
+
+	// box lim is the min max of box
 	std::vector<Eigen::Vector3f> boxlim = Flyscene::getBoxLimits(box, mesh);
     float xdiff = boxlim[1].x() - boxlim[0].x();
     float ydiff = boxlim[1].y() - boxlim[0].y();
@@ -311,71 +337,63 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 
     float cut;
 
-    if (box.size() < 200) {
-        boxes.push_back(box);
-        return;
-    }
-
+	std::cout << "red1 " << std::endl;
+	//if x diff is the highest cut from there
     if (xdiff > ydiff && xdiff > zdiff) {
+		//contains the mean
         cut = boxlim[2].x();
         for (int i = 0; i < box.size(); i++) {
-            std::vector<GLuint> vecsofface = box[i].vertex_ids;
-            for (int a = 0; a < vecsofface.size(); a++) {
-                if (mesh.getVertex(vecsofface[a]).x() < cut) {
-                    // i changed this code so it compares the vertecis of the face, since we dont have an operated == operator for the face
-                    if (box1.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] &&
-                        box1.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] &&
-                        box1.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
-                        box1.push_back(mesh.getFace(i));
-                    }
-                } else {
-                    //changed this the same as the code above
-                    if (box2.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] &&
-                        box2.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] &&
-                        box2.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
-                        box2.push_back(mesh.getFace(i));
-                    }
-                }
+            
+            for (int a = 0; a < box[i].vertex_ids.size(); a++) {
+				if (mesh.getVertex(box[i].vertex_ids[a]).x() < cut) {
+					if (box1.back().vertex_ids[a] != box[i].vertex_ids[a]) {
+						box1.push_back(box[i]);
+					}
+				}
+				else {
+					//changed this the same as the code above
+					if (box2.back().vertex_ids[a] != box[i].vertex_ids[a]) {
+						box2.push_back(box[i]);
+					}
+				}
             }
         }
+		//if y dif is highest cut from y
     } else if (ydiff > xdiff && ydiff > zdiff) {
         cut = boxlim[2].y();
         for (int i = 0; i < box.size(); i++) {
-            std::vector<GLuint> vecsofface = box[i].vertex_ids;
-            for (int a = 0; a < vecsofface.size(); a++) {
-                if (mesh.getVertex(vecsofface[a]).y() < cut) {
-                    if (box1.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] &&
-                        box1.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] &&
-                        box1.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
-                        box1.push_back(mesh.getFace(i));
-                    }
-                } else {
-                    if (box2.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] &&
-                        box2.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] &&
-                        box2.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
-                        box2.push_back(mesh.getFace(i));
-                    }
-                }
+        
+            for (int a = 0; a < box[i].vertex_ids.size(); a++) {
+				if (mesh.getVertex(box[i].vertex_ids[a]).y() < cut) {
+					if (box1.back().vertex_ids[a] != box[i].vertex_ids[a]) {
+						box1.push_back(box[i]);
+					}
+				}
+				else {
+					//changed this the same as the code above
+					if (box2.back().vertex_ids[a] != box[i].vertex_ids[a]) {
+						box2.push_back(box[i]);
+					}
+				}
             }
         }
+		//if z dif is highest cut from z
     } else {
         cut = boxlim[2].z();
         for (int i = 0; i < box.size(); i++) {
-            std::vector<GLuint> vecsofface = box[i].vertex_ids;
-            for (int a = 0; a < vecsofface.size(); a++) {
-                if (mesh.getVertex(vecsofface[a]).z() < cut) {
-                    if (box1.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] &&
-                        box1.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] &&
-                        box1.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
-                        box1.push_back(mesh.getFace(i));
-                    }
-                } else {
-                    if (box2.vector::back().vertex_ids[0] != mesh.getFace(i).vertex_ids[0] &&
-                        box2.vector::back().vertex_ids[1] != mesh.getFace(i).vertex_ids[1] &&
-                        box2.vector::back().vertex_ids[2] != mesh.getFace(i).vertex_ids[2]) {
-                        box2.push_back(mesh.getFace(i));
-                    }
-                }
+            
+            for (int a = 0; a < box[i].vertex_ids.size(); a++) {
+                if (mesh.getVertex(box[i].vertex_ids[a]).z() < cut) {
+					if (box1.back().vertex_ids[a] != box[i].vertex_ids[a]) {
+						box1.push_back(box[i]);
+					}
+				}
+				else {
+					//changed this the same as the code above
+					if (box2.back().vertex_ids[a] != box[i].vertex_ids[a]) {
+						box2.push_back(box[i]);
+					}
+				}
             }
         }
     }
@@ -397,17 +415,14 @@ std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
 }
 
 // checks intersection with bounding box
-auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes,
-                  std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node, Tucano::Mesh mesh) {
-    struct result {
-        bool inter;
-        Tucano::Face face;
-        Eigen::Vector4f hit;
-    };
+std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes,
+                  std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node, Tucano::Mesh mesh, std::vector<HitData>& hits) {
+	
 
 	if (boxes.size() <= inter_node) {
-		return result{ false, boxes[0][0], Eigen::Vector4f(0, 0, 0, 0) };
+		return hits;
 	}
+	std::cout << "red2 " << std::endl;
     float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
     float tmax_x = (boxbounds[inter_node][1].x() - start.x()) / to.x();
 
@@ -431,18 +446,22 @@ auto intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::ve
 
     if ((tin > tout) || (tout < 0)) {
         if (boxes.size() <= inter_node) {
-            return result{false, boxes[0][0], Eigen::Vector4f(0, 0, 0, 0)};
+            return hits;
         }
-        return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh);
+        return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
     }
 
     for (int i = 0; i < boxes[inter_node].size(); i++) {
         auto ans = intersectTriange(start, to, boxes[inter_node][i], mesh);
         if (ans.inter) {
-            return result{true, ans.face, ans.hit};
+			HitData hit;
+			hit.face = ans.face;
+			hit.hit = ans.hit;
+            hits.push_back(hit);
         }
     }
-    return result{false, boxes[0][0], Eigen::Vector4f(0, 0, 0, 0)};
+
+    return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
 
 }
 
@@ -463,14 +482,28 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
         Tucano::Face face;
         Eigen::Vector3f hit;
     };
+	std::vector<HitData> lolz;
 
-    auto ans = intersectBox(start, to, boxes, boxbounds, 0, mesh);
-	// distance en yakin olani return le
-    if (ans.inter) {
-        return result{true, ans.face, Eigen::Vector3f(ans.hit.x(), ans.hit.y(), ans.hit.z())};
-    }
+    std::vector<HitData> hits = intersectBox(start, to, boxes, boxbounds, 0, mesh, lolz);
+	if (hits.size() == 0) {
+		return result{ false, mesh.getFace(0), Eigen::Vector3f(Eigen::Vector3f(0, 0, 0)) };
+	}
+	std::cout << "red3 " << std::endl;
+	// go through all the hits and get the smallest distance
+	Eigen::Vector3f ahit = hits[0].gethit();
+	float min_distance = sqrt((pow(start.x()-ahit.x(), 2) + pow(start.y() - ahit.y(), 2) + pow(start.z() - ahit.z(), 2)));
+	float the_one = 0;
+	for (int i = 0; i < hits.size(); i++) {
+		ahit = hits[i].gethit();
+		float d = sqrt((pow(start.x() - ahit.x(), 2) + pow(start.y() - ahit.y(), 2) + pow(start.z() - ahit.z(), 2)));
+		if (d < min_distance) {
+			the_one = i;
+			min_distance = d;
+		}
+	}
+    
 
-    return result{false, boxes[0][0], Eigen::Vector3f(0, 0, 0)};
+    return result{true, hits[the_one].face, hits[the_one].gethit()};
 }
 
 // src = raytracing slight
@@ -519,7 +552,7 @@ Eigen::Vector3f shade(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tuca
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
-        return start; //WE NEED to return color of current vertex we are at but we are just returning it's coords now just so it compiles
+        return Eigen::Vector3f(1, 1, 1); //WE NEED to return color of current vertex we are at but we are just returning it's coords now just so it compiles
     }
 
 }
@@ -528,7 +561,8 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
                                     Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
                                     std::vector<std::vector<Tucano::Face>> boxes,
                                     std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
-    //return empty vector which is just supposed to be black
+	std::cout << "red4" << std::endl;
+	//return empty vector which is just supposed to be black
     auto intersection = intersect(start, to, mesh, boxes, boxbounds);
     if (!intersection.inter) {
         return Eigen::Vector3f(0, 0, 0);
@@ -559,7 +593,7 @@ float distance(Eigen::Vector3f a, Eigen::Vector3f b) {
 	float y = a.y() - b.y();
 	float z = a.z() - b.z();
 
-	return sqrt(pow(x,2)+ pow(y, 2)+ pow(z, 2));
+	return sqrt((pow(x,2)+ pow(y, 2)+ pow(z, 2)));
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
@@ -589,6 +623,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		boxbounds.push_back(getBoxLimits(boxes[i], mesh));
 	}
 
+	std::cout << "debug " << std::endl;
 	auto intersection = intersect(screen_pos, dir, mesh, boxes, boxbounds);
 
 	if (intersection.inter) {

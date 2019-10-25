@@ -1,6 +1,5 @@
 // Must come before GLFW
 #include <GL/glew.h>
-
 #include <GLFW/glfw3.h>
 #include "flyscene.hpp"
 #include <iostream>
