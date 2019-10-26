@@ -85,6 +85,8 @@ void Flyscene::paintGL(void) {
 
     // render the ray and camera representation for ray debug
     ray.render(flycamera, scene_light);
+	reflectionRay.render(flycamera, scene_light);
+	refractionRay.render(flycamera, scene_light);
     camerarep.render(flycamera, scene_light);
 
     // render ray tracing light sources as yellow spheres
@@ -726,12 +728,12 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 	if (intersection.inter) {
 		//reflection
 		std::cout << "hit data " << intersection.hit << std::endl;
-		ray.setSize(0.005, distance(screen_pos, intersection.hit));
+		ray.setSize(0.005, distance(flycamera.getCenter(),intersection.hit));
 		Eigen::Vector3f facenorm = intersection.face.normal.normalized();
 		Eigen::Vector3f reflection = reflect(dir, facenorm);
 		reflectionRay.setSize(0.005, 10);
 		reflectionRay.setOriginOrientation(intersection.hit, reflection);
-		
+		reflectionRay.setColor(Eigen::Vector4f(1, 0, 0, 0));
 		
 
 		// src = your slights
@@ -741,6 +743,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		Eigen::Vector3f refraction = refract(dir, facenorm, air, material);
 		refractionRay.setSize(0.005, 10);
 		refractionRay.setOriginOrientation(intersection.hit, refraction);
+		refractionRay.setColor(Eigen::Vector4f(0, 1, 0, 0));
 		
 		std::cout << "arranged " << std::endl;
 	}
