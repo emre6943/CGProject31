@@ -358,6 +358,7 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
     std::vector<Tucano::Face> box2;
 
 	//if box has less that 345 faces then push it to boxes
+	// because if lower gets stucked
 	if (box.size() < 345) {
 		boxes.push_back(box);
 		return;
@@ -739,6 +740,8 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		// src = your slights
 		float air = 1.0;
 		float material = materials[intersection.face.material_id].getOpticalDensity();
+
+		std::cout << "MATERIAL "<< material << std::endl;
 
 		Eigen::Vector3f refraction = refract(dir, facenorm, air, material);
 		refractionRay.setSize(0.005, 10);
