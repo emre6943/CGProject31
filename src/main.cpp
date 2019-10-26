@@ -4,8 +4,8 @@
 #include "flyscene.hpp"
 #include <iostream>
 
-#define WINDOW_WIDTH 100
-#define WINDOW_HEIGHT 100
+#define WINDOW_WIDTH 1000
+#define WINDOW_HEIGHT 1000
 
 Flyscene *flyscene;
 Eigen::Vector2f mouse_pos = Eigen::Vector2f::Zero();
@@ -51,6 +51,7 @@ void initialize(void) {
   std::cout << "T    : Ray trace the scene." << std::endl;
   std::cout << "Esc  : Close application." << std::endl;
   std::cout << " ********************************* " << std::endl;
+  
 }
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action,

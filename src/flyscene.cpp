@@ -13,7 +13,7 @@ void Flyscene::initialize(int width, int height) {
 
     // load the OBJ file and materials
     Tucano::MeshImporter::loadObjFile(mesh, materials,
-                                      "resources/models/dodgeColorTest.obj");
+                                      "resources/models/cube.obj");
 
 
     // normalize the model (scale to unit cube and center at origin)
@@ -167,29 +167,30 @@ void Flyscene::raytraceScene(int width, int height) {
 
 
 //Intersection with plane
-auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f normal, Eigen::Vector4f p_onPlane) {
-    Eigen::Vector3f p = Eigen::Vector3f(p_onPlane.x(), p_onPlane.y(), p_onPlane.z());
+// src = slights
+auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f normal, Eigen::Vector3f p) {
+    
     float distance = p.dot(normal);
-    Eigen::Vector4f point;
+    Eigen::Vector3f point;
     struct result {
         bool inter;
         float t;
-        Eigen::Vector4f point;
+        Eigen::Vector3f point;
     };
 
 	std::cout << "Plane Intersect";
 
     if (to.dot(normal) == 0) {
-        return result{false, 0, p_onPlane};
+        return result{false, 0, p};
     }
 
     float t = (distance - (start.dot(normal))) / (to.dot(normal));
     Eigen::Vector3f xyz = (start + t * to);
-    point = Eigen::Vector4f(xyz.x(), xyz.y(), xyz.z(), p_onPlane.w());
+    
 	if (t < 0) {
-		return result{ false, 0, p_onPlane };
+		return result{ false, 0 , xyz};
 	}
-    return result{true, t, point};
+    return result{true, t, xyz};
 }
 
 
@@ -197,59 +198,63 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
 //give normalized vectors
 // src = https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/barycentric-coordinates
 auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face face, Tucano::Mesh mesh) {
-    Eigen::Vector3f facenormal = face.normal;
-    
 
+	const Eigen::Vector4f vec40 = (mesh.getShapeModelMatrix() * mesh.getVertex(face.vertex_ids[0]));
+	const Eigen::Vector4f vec41 = (mesh.getShapeModelMatrix() * mesh.getVertex(face.vertex_ids[1]));
+	const Eigen::Vector4f vec42 = (mesh.getShapeModelMatrix() * mesh.getVertex(face.vertex_ids[2]));
+
+    Eigen::Vector3f facenormal = face.normal;
+
+	Eigen::Vector3f v0 = (vec40 / vec40.w()).head<3>();
+	Eigen::Vector3f v1 = (vec41 / vec41.w()).head<3>();
+	Eigen::Vector3f v2 = (vec42 / vec42.w()).head<3>();
+   
     struct result {
         bool inter;
         Tucano::Face face;
         Tucano::Mesh mesh;
-        Eigen::Vector4f hit;
+        Eigen::Vector3f hit;
     };
 
 	std::cout << "Tiangle Intersect";
 
-    auto intersectionPlane = intersectPlane(start, to, facenormal, mesh.getVertex(face.vertex_ids[0]));
+	auto planeinter = intersectPlane(start, to, facenormal, v0);
 
-	Eigen::Vector3f p_onPlane = Eigen::Vector3f(intersectionPlane.point.x(), intersectionPlane.point.y(), intersectionPlane.point.z());
+	if (planeinter.inter) {
+		Eigen::Vector3f p_onPlane = planeinter.point;
 
-    if (intersectionPlane.inter) {
+		Eigen::Vector3f per;
 
-		Eigen::Vector3f v0 = Eigen::Vector3f(mesh.getVertex(face.vertex_ids[0]).x(), mesh.getVertex(face.vertex_ids[0]).y(), mesh.getVertex(face.vertex_ids[0]).z());
-		Eigen::Vector3f v1 = Eigen::Vector3f(mesh.getVertex(face.vertex_ids[1]).x(), mesh.getVertex(face.vertex_ids[1]).y(), mesh.getVertex(face.vertex_ids[1]).z());
-		Eigen::Vector3f v2 = Eigen::Vector3f(mesh.getVertex(face.vertex_ids[2]).x(), mesh.getVertex(face.vertex_ids[2]).y(), mesh.getVertex(face.vertex_ids[2]).z());
-
-		
-		Eigen::Vector3f per; // vector perpendicular to triangle's plane 
-		
 		Eigen::Vector3f edge0 = v1 - v0;
 		Eigen::Vector3f vp0 = p_onPlane - v0;
 		per = edge0.cross(vp0);
 		if (facenormal.dot(per) < 0) {
-			return result{false, face, mesh, Eigen::Vector4f(p_onPlane.x(),p_onPlane.y(),p_onPlane.z(), intersectionPlane.point.w())};
+			return result{ false, face, mesh, p_onPlane };
 		}
 
-		
+
 		Eigen::Vector3f  edge1 = v2 - v1;
 		Eigen::Vector3f  vp1 = p_onPlane - v1;
 		per = edge1.cross(vp1);
 		if (facenormal.dot(per) < 0) {
-			return result{ false, face, mesh, Eigen::Vector4f(p_onPlane.x(),p_onPlane.y(),p_onPlane.z(), intersectionPlane.point.w()) };
+			return result{ false, face, mesh, p_onPlane };
 		}
 
-		
+
 		Eigen::Vector3f  edge2 = v0 - v2;
 		Eigen::Vector3f  vp2 = p_onPlane - v2;
 		per = edge2.cross(vp2);
 		if (facenormal.dot(per) < 0) {
-			return result{ false, face, mesh, Eigen::Vector4f(p_onPlane.x(),p_onPlane.y(),p_onPlane.z(), intersectionPlane.point.w()) };
+			return result{ false, face, mesh ,p_onPlane };
 		}
 
+		std::cout << "TRIANGEL INTERSECTION FOUND " << std::endl;
+		return result{ true, face, mesh, p_onPlane };
 
-		return result{ true, face, mesh, Eigen::Vector4f(p_onPlane.x(),p_onPlane.y(),p_onPlane.z(), intersectionPlane.point.w()) };
-    }
+	}
 
-	return result{ false, face, mesh, Eigen::Vector4f(p_onPlane.x(),p_onPlane.y(),p_onPlane.z(), intersectionPlane.point.w()) };
+	return result{ false, face, mesh, v0 };
+
 }
 
 //Object for git info
@@ -257,15 +262,13 @@ class HitData
 {
 	// Access specifier 
 public:
-
 	// Data Members
 	Tucano::Face face;
-	Eigen::Vector4f hit;
+	Eigen::Vector3f hit;
 	
 	// Member Functions() 
 	Eigen::Vector3f gethit() {
-		Eigen::Vector3f v = Eigen::Vector3f(hit.x(), hit.y(), hit.z());
-		return v;
+		return hit;
 	}
 };
 
@@ -273,7 +276,8 @@ public:
 std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh) {
 
     std::vector<Eigen::Vector3f> vecs;
-    Eigen::Vector4f vec;
+    Eigen::Vector3f vec;
+	Eigen::Vector4f vec4;
 
     if (box.size() == 0) {
         return vecs;
@@ -292,8 +296,9 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
     float mean_x = 0;
     float mean_y = 0;
     float mean_z = 0;
-
-    vec = mesh.getVertex(vecsofface[0]);
+	
+	vec4 = mesh.getShapeModelMatrix() * mesh.getVertex(vecsofface[0]);
+    vec = (vec4 / vec4.w()).head<3>();
 
     float min_x = vec.x();
     float max_x = vec.x();
@@ -305,7 +310,8 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
     float max_z = vec.z();
 
     for (int i = 0; i < vecsofface.size(); i++) {
-        Eigen::Vector4f v = mesh.getVertex(vecsofface[i]);
+		Eigen::Vector4f v4 = mesh.getShapeModelMatrix() * mesh.getVertex(vecsofface[i]);
+        Eigen::Vector3f v = (v4 / v4.w()).head<3>();;
 
         mean_x = mean_x + v.x();
         mean_y = mean_y + v.y();
@@ -333,29 +339,13 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
     mean_x = mean_x / vecsofface.size();
     mean_y = mean_y / vecsofface.size();
     mean_z = mean_z / vecsofface.size();
+	std::cout << "min " << Eigen::Vector3f(min_x, min_y, min_z) << std::endl;
+	std::cout << "max" << Eigen::Vector3f(max_x, max_y, max_z) << std::endl;
 
     vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
     vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
     vecs.push_back(Eigen::Vector3f(mean_x, mean_y, mean_z));
     return vecs;
-}
-
-bool contains(std::vector<Tucano::Face> box, Tucano::Face face) {
-	if (box.size() == 0) {
-		return false;
-	}
-
-	
-
-	for (int i = 0; i < box.size(); i++) {
-		if (box[i].vertex_ids[0] == face.vertex_ids[0] && box[i].vertex_ids[1] == face.vertex_ids[1] && box[i].vertex_ids[2] == face.vertex_ids[2]) {
-			return true;
-		}
-		
-	}
-
-	return false;
-	
 }
 
 //recursuve box
@@ -393,7 +383,9 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 			bool box2con = false;
 			std::cout << box.size() << std::endl;
             for (int a = 0; a < box[i].vertex_ids.size(); a++) {
-				if (mesh.getVertex(box[i].vertex_ids[a]).x() < cut) {
+				Eigen::Vector4f v4 = mesh.getShapeModelMatrix() * mesh.getVertex(box[i].vertex_ids[a]);
+				Eigen::Vector3f v = (v4 / v4.w()).head<3>();;
+				if (v.x() < cut) {
 					if (!box1con) {
 						box1.push_back(box[i]);
 						box1con = true;
@@ -418,7 +410,9 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 			bool box2con = false;
 
             for (int a = 0; a < box[i].vertex_ids.size(); a++) {
-				if (mesh.getVertex(box[i].vertex_ids[a]).y() < cut) {
+				Eigen::Vector4f v4 = mesh.getShapeModelMatrix() * mesh.getVertex(box[i].vertex_ids[a]);
+				Eigen::Vector3f v = (v4 / v4.w()).head<3>();;
+				if (v.y() < cut) {
 					if (!box1con) {
 						box1.push_back(box[i]);
 						box1con = true;
@@ -442,7 +436,9 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 			bool box1con = false;
 			bool box2con = false;
             for (int a = 0; a < box[i].vertex_ids.size(); a++) {
-                if (mesh.getVertex(box[i].vertex_ids[a]).z() < cut) {
+				Eigen::Vector4f v4 = mesh.getShapeModelMatrix() * mesh.getVertex(box[i].vertex_ids[a]);
+				Eigen::Vector3f v = (v4 / v4.w()).head<3>();;
+				if (v.z() < cut) {
 					if (!box1con) {
 						box1.push_back(box[i]);
 						box1con = true;
@@ -458,8 +454,9 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
             }
         }
     }
-
+	std::cout << "BOX1" << box1.size() << std::endl;
     createboxes(box1, mesh, boxes);
+	std::cout << "BOX2" << box2.size() << std::endl;
     createboxes(box2, mesh, boxes);
 
 }
@@ -471,28 +468,34 @@ std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
     for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
         box.push_back(mesh.getFace(i));
     }
-	std::cout << "I am in first box gonna go create box" << std::endl;
+	std::cout << "big box" << box.size() << std::endl;
+	std::cout << "total faces" << mesh.getNumberOfFaces() << std::endl;
     createboxes(box, mesh, boxes);
     return boxes;
 }
 
 // checks intersection with bounding box
+// src =  slights
 std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes,
                   std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node, Tucano::Mesh mesh, std::vector<HitData>& hits) {
 	std::cout << "BOXessss " << boxes.size() << std::endl;
 	std::cout << "WE ARE " << inter_node << std::endl;
-	std::cout << "BOX SIZE "<< boxes[inter_node].size() << std::endl;
+	
+
+	if (boxes.size() <= inter_node) {
+		std::cout << " returned " << std::endl;
+		std::cout << hits.size() << std::endl;
+		return hits;
+	}
+
+	std::cout << "BOX SIZE " << boxes[inter_node].size() << std::endl;
 
 	if (boxes[inter_node].size() == 0) {
 		return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
 		
 	}
 	
-
-	if (boxes.size() <= inter_node ) {
-		return hits;
-		std::cout << " returned " << std::endl;
-	}
+	
 	std::cout << "red2 " << std::endl;
     float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
     float tmax_x = (boxbounds[inter_node][1].x() - start.x()) / to.x();
@@ -512,16 +515,19 @@ std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std
     float tin_z = std::min(tmin_z, tmax_z);
     float tout_z = std::max(tmin_z, tmax_z);
 
-    float tin = 0;
-    float tout = 1;
+    float tin = std::max(tin_x, tin_y);
+	tin = std::max(tin, tin_z);
+    float tout = std::min(tout_x, tout_y);
+	tout = std::min(tout, tout_z);
 
-    if ((tin > tout) || (tout < 0)) {
+    if ((tin > tout) || tout < 0 ) {
+		std::cout << "box missed " << std::endl;
         if (boxes.size() <= inter_node) {
             return hits;
         }
         return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
     }
-
+	std::cout << "box hit " << std::endl;
     for (int i = 0; i < boxes[inter_node].size(); i++) {
         auto ans = intersectTriange(start, to, boxes[inter_node][i], mesh);
         if (ans.inter) {
@@ -554,8 +560,23 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
         Eigen::Vector3f hit;
     };
 	std::vector<HitData> lolz;
+	std::vector<HitData> hits;
 
-    std::vector<HitData> hits = intersectBox(start, to, boxes, boxbounds, 0, mesh, lolz);
+	/*
+	for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+		auto result = intersectTriange(start, to, mesh.getFace(i), mesh);
+		if (result.inter) {
+			HitData hit;
+			hit.face = result.face;
+			hit.hit = result.hit;
+			hits.push_back(hit);
+			hits.push_back(hit);
+			std::cout << "we are at face " << i << std::endl;
+		}
+	}
+	*/
+	
+    hits = intersectBox(start, to, boxes, boxbounds, 0, mesh, lolz);
 	std::cout << "hits size " <<hits.size()<< std::endl;
 	if (hits.size() == 0) {
 		return result{ false, mesh.getFace(0), Eigen::Vector3f(Eigen::Vector3f(0, 0, 0)) };
@@ -621,7 +642,7 @@ Eigen::Vector3f shade(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tuca
                       std::vector<std::vector<Tucano::Face>> boxes,
                       std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
     //return empty vector which is just supposed to be black
-    if (!intersect(start, to, mesh, boxes, boxbounds).inter) {
+    if (intersect(start, to, mesh, boxes, boxbounds).inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
@@ -637,7 +658,7 @@ Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vec
 	std::cout << "red4" << std::endl;
 	//return empty vector which is just supposed to be black
     auto intersection = intersect(start, to, mesh, boxes, boxbounds);
-    if (!intersection.inter) {
+    if (intersection.inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
     if (level == 0) {
@@ -704,10 +725,13 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 	std::cout << "inter " << intersection.inter << std::endl;
 	if (intersection.inter) {
 		//reflection
+		std::cout << "hit data " << intersection.hit << std::endl;
 		ray.setSize(0.005, distance(screen_pos, intersection.hit));
 		Eigen::Vector3f facenorm = intersection.face.normal.normalized();
 		Eigen::Vector3f reflection = reflect(dir, facenorm);
+		reflectionRay.setSize(0.005, 10);
 		reflectionRay.setOriginOrientation(intersection.hit, reflection);
+		
 		
 
 		// src = your slights
@@ -715,6 +739,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		float material = materials[intersection.face.material_id].getOpticalDensity();
 
 		Eigen::Vector3f refraction = refract(dir, facenorm, air, material);
+		refractionRay.setSize(0.005, 10);
 		refractionRay.setOriginOrientation(intersection.hit, refraction);
 		
 		std::cout << "arranged " << std::endl;
