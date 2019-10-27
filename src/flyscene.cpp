@@ -188,6 +188,11 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
 
     float t = (distance - (start.dot(normal))) / (to.dot(normal));
     Eigen::Vector3f xyz = (start + t * to);
+
+	//if intersection point and start is same doesnt count for shade
+	if (xyz.x() == start.x() && xyz.y() == start.y() && xyz.z() == start.z()) {
+		return result{ false, 0, p };
+	}
     
 	if (t < 0) {
 		return result{ false, 0 , xyz};
@@ -640,37 +645,114 @@ Eigen::Vector3f directIllumination(const Eigen::Vector3f &I, const Eigen::Vector
 
 }
 */
-Eigen::Vector3f shade(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
+// src = assignment 5
+Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f from,Tucano::Face face, Tucano::Mesh mesh,
                       Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
                       std::vector<std::vector<Tucano::Face>> boxes,
                       std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
-    //return empty vector which is just supposed to be black
-    if (intersect(start, to, mesh, boxes, boxbounds).inter) {
-        return Eigen::Vector3f(0, 0, 0);
-    }
-    if (level == 0) {
-        return Eigen::Vector3f(1, 1, 1); //WE NEED to return color of current vertex we are at but we are just returning it's coords now just so it compiles
-    }
+	
+	std::vector<Eigen::Vector3f> light_directions;
+	std::vector<Eigen::Vector3f> reflected_lights;
+	std::vector<Eigen::Vector3f> colors;
+	
+	Eigen::Vector3f normal3 = face.normal;
+	/// 2) compute eye direction
+	Eigen::Vector3f eye_vec3 = (-from).normalized();
+
+	Eigen::Vector3f light_intensity = Eigen::Vector3f(1,1,1);
+
+	Eigen::Vector3f ka = materials[face.material_id].getAmbient();
+	Eigen::Vector3f kd = materials[face.material_id].getDiffuse();
+	Eigen::Vector3f ks = materials[face.material_id].getSpecular();
+	float n = materials[face.material_id].getShininess();
+
+	for (int i = 0; i < lights.size(); i++) {
+		Eigen::Vector3f color;
+		/// 0) compute the light direction
+		Eigen::Vector3f light_vec = (lights[i] - hit).normalized();
+		light_directions.push_back(light_vec);
+
+		/// 1) reflect light direction according to normal vector
+		Eigen::Vector3f reflected_light = reflect(light_vec, normal3).normalized();
+		reflected_lights.push_back(reflected_light);
+
+		auto intersection = intersect(hit, light_vec, mesh, boxes, boxbounds);
+		std::cout << "INTERSECTTTTTTTT " << intersection.inter << std::endl;
+		if (!intersection.inter) {
+			/// 3) compute ambient, diffuse and specular components
+			Eigen::Vector3f A = light_intensity.array() * ka.array();
+			std::cout << "AMBIENT " << A << std::endl;
+
+			// normalized lenght = 1
+			float cosss = normal3.dot(light_vec);
+			Eigen::Vector3f D = light_intensity.array() * kd.array() * cosss;
+			std::cout << "DIFUSE " << D << std::endl;
+
+			float coss = reflected_light.dot(eye_vec3);
+			Eigen::Vector3f S = light_intensity.array() * ks.array() * pow(std::max(coss, 0.0f), n);
+			std::cout << "SPECULAR " << S << std::endl;
+			// max because -shinenes doesnt make sense
+
+
+			/// 4) compute final color using the Phong Model
+			color = A + D + S;
+			colors.push_back(color);
+		}
+		else {
+			color = Eigen::Vector3f(0, 0, 0);
+			colors.push_back(color);
+		}
+	}
+
+	float maxx = 0;
+	float maxy = 0;
+	float maxz = 0;
+	for (int n = 0; n < colors.size(); n++) {
+		maxx = std::max(maxx , colors[n].x());
+		maxy = std::max(maxy, colors[n].y());
+		maxz = std::max(maxz, colors[n].z());
+	}
+
+	return Eigen::Vector3f(maxx, maxy, maxz);
+
+	// THIS PART IS UNKNOWN WHEN SURE PUT IT BEFORE RETURN
+	// I am not even sgure if this part must be here or not
+	// THIS PART I dont know but it should look something along the lines od this
+	//need to implement with level
+
+	//reflection
+	Eigen::Vector3f reflection = reflect(from, normal3);
+	
+	shade(level - 1, hit, reflection, face, mesh, phong, lights, boxes, boxbounds);
+
+
+	// refraction
+	float air = 1.0;
+	float material = materials[face.material_id].getOpticalDensity();
+
+	Eigen::Vector3f refraction = refract(from, normal3, air, material);
+	
+	shade(level - 1, hit, refraction, face, mesh, phong, lights, boxes, boxbounds);
+	
 
 }
 
-Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
+Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
                                     Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
                                     std::vector<std::vector<Tucano::Face>> boxes,
                                     std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
-	std::cout << "red4" << std::endl;
+	std::cout << "recursive ray tracing" << std::endl;
 	//return empty vector which is just supposed to be black
     auto intersection = intersect(start, to, mesh, boxes, boxbounds);
-    if (intersection.inter) {
+    if (!intersection.inter) {
         return Eigen::Vector3f(0, 0, 0);
     }
+	// if level is not 0 it should do the method agtain ?? we never do that here
     if (level == 0) {
         return start; //returns the coordinates for right now. whoever is working on shading and this function,
         // will determine if this is enough or they need to output color from this functions somehow.
     }
-    return shade(level, intersection.hit,
-                 reflect(intersection.hit.head<3>() - start, //ignoring the 4th dimension of intersection? is this correct?
-                         intersection.face.normal),
+    return shade(level, intersection.hit, intersection.hit - start, intersection.face,
                  mesh, phong, lights, boxes, boxbounds); //either return just the color or after the shading
 }
 
@@ -734,7 +816,10 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		Eigen::Vector3f reflection = reflect(dir, facenorm);
 		reflectionRay.setSize(0.005, 10);
 		reflectionRay.setOriginOrientation(intersection.hit, reflection);
-		reflectionRay.setColor(Eigen::Vector4f(1, 0, 0, 0));
+		Eigen::Vector3f color3 = shade(1, intersection.hit, intersection.hit - flycamera.getCenter(), intersection.face, mesh, phong, lights, boxes, boxbounds);
+		Eigen::Vector4f color4 = Eigen::Vector4f(color3.x(), color3.y(), color3.z(), 1);
+		reflectionRay.setColor(color4);
+		std::cout << "COLOR " << color4 << std::endl;
 		
 
 		// src = your slights
@@ -742,7 +827,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		float material = materials[intersection.face.material_id].getOpticalDensity();
 
 		std::cout << "MATERIAL "<< material << std::endl;
-
+		
 		Eigen::Vector3f refraction = refract(dir, facenorm, air, material);
 		refractionRay.setSize(0.005, 10);
 		refractionRay.setOriginOrientation(intersection.hit, refraction);

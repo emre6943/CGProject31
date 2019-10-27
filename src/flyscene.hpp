@@ -69,6 +69,14 @@ public:
    */
   Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest, std::vector<std::vector<Tucano::Face>>& boxes, std::vector<std::vector<Eigen::Vector3f>>& boxbounds);
 
+  Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
+	  std::vector<std::vector<Tucano::Face>> boxes,
+	  std::vector<std::vector<Eigen::Vector3f>> boxbounds);
+
+  Eigen::Vector3f shade(int level, Eigen::Vector3f hit, Eigen::Vector3f from, Tucano::Face face, Tucano::Mesh mesh, Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
+	  std::vector<std::vector<Tucano::Face>> boxes,
+	  std::vector<std::vector<Eigen::Vector3f>> boxbounds);
+
   std::vector<Eigen::Vector3f> getBoxLimits(std::vector<Tucano::Face> box, Tucano::Mesh mesh);
 
   std::vector<std::vector<Tucano::Face>> firstBox(Tucano::Mesh mesh);
