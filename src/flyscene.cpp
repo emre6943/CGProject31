@@ -744,8 +744,9 @@ Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, 
 	std::cout << "recursive ray tracing" << std::endl;
 	//return empty vector which is just supposed to be black
     auto intersection = intersect(start, to, mesh, boxes, boxbounds);
+	std::cout << intersection.inter << std::endl;
     if (!intersection.inter) {
-        return Eigen::Vector3f(0, 0, 0);
+        return Eigen::Vector3f(1, 1, 1);
     }
 	// if level is not 0 it should do the method agtain ?? we never do that here
     if (level == 0) {
@@ -760,7 +761,7 @@ Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, 
 Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest ,std::vector<std::vector<Tucano::Face>> &boxes, std::vector<std::vector<Eigen::Vector3f>> &boxbounds) {
     // just some fake random color per pixel until you implement your ray tracing
     // remember to return your RGB values as floats in the range [0, 1]!!!
-    Eigen::Vector3f result = recursiveraytracing(1, origin, dest, mesh, phong, lights, boxes,
+    Eigen::Vector3f result = recursiveraytracing(1, origin, dest - origin, mesh, phong, lights, boxes,
                                                  boxbounds);   //bounce one more ray
 
     return result;
