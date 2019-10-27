@@ -660,10 +660,11 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	Eigen::Vector3f eye_vec3 = (-from).normalized();
 
 	Eigen::Vector3f light_intensity = Eigen::Vector3f(1,1,1);
-
-	Eigen::Vector3f ka = materials[face.material_id].getAmbient();
-	Eigen::Vector3f kd = materials[face.material_id].getDiffuse();
-	Eigen::Vector3f ks = materials[face.material_id].getSpecular();
+	
+	
+	Eigen::Vector3f ka = phong.getMaterial(face.material_id).getAmbient();
+	Eigen::Vector3f kd = phong.getMaterial(face.material_id).getDiffuse();
+	Eigen::Vector3f ks = phong.getMaterial(face.material_id).getSpecular();
 	float n = materials[face.material_id].getShininess();
 
 	for (int i = 0; i < lights.size(); i++) {
@@ -704,16 +705,16 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		}
 	}
 
-	float maxx = 0;
-	float maxy = 0;
-	float maxz = 0;
+	float sumx = 0;
+	float sumy = 0;
+	float sumz = 0;
 	for (int n = 0; n < colors.size(); n++) {
-		maxx = std::max(maxx , colors[n].x());
-		maxy = std::max(maxy, colors[n].y());
-		maxz = std::max(maxz, colors[n].z());
+		sumx = sumx + colors[n].x();
+		sumy = sumy + colors[n].y();
+		sumz = sumz + colors[n].z();
 	}
 
-	return Eigen::Vector3f(maxx, maxy, maxz);
+	return Eigen::Vector3f(sumx, sumy, sumz);
 
 	// THIS PART IS UNKNOWN WHEN SURE PUT IT BEFORE RETURN
 	// I am not even sgure if this part must be here or not
