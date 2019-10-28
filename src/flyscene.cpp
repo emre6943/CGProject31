@@ -154,11 +154,14 @@ void Flyscene::raytraceScene(int width, int height) {
 
     // for every pixel shoot a ray from the origin through the pixel coords
     for (int j = 0; j < image_size[1]; ++j) {
+		cout << j << "\n";
         for (int i = 0; i < image_size[0]; ++i) {
             // create a ray from the camera passing through the pixel (i,j)
             screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
             // launch raytracing for the given ray and write result to pixel data
-            pixel_data[i][j] = traceRay(origin, screen_coords, boxes, boxbounds);
+			Eigen::Vector3f direction = screen_coords - origin;
+            pixel_data[i][j] = traceRay(origin, direction, boxes, boxbounds);
+
         }
     }
 
@@ -180,7 +183,7 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
         Eigen::Vector3f point;
     };
 
-	std::cout << "Plane Intersect";
+	//std::cout << "Plane Intersect";
 
     if (to.dot(normal) == 0) {
         return result{false, 0, p};
@@ -223,7 +226,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
         Eigen::Vector3f hit;
     };
 
-	std::cout << "Tiangle Intersect";
+	//std::cout << "Tiangle Intersect";
 
 	auto planeinter = intersectPlane(start, to, facenormal, v0);
 
@@ -255,7 +258,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 			return result{ false, face, mesh ,p_onPlane };
 		}
 
-		std::cout << "TRIANGEL INTERSECTION FOUND " << std::endl;
+		//std::cout << "TRIANGEL INTERSECTION FOUND " << std::endl;
 		return result{ true, face, mesh, p_onPlane };
 
 	}
@@ -369,7 +372,7 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 		return;
 	}
 
-	std::cout << "a" << std::endl;
+	//std::cout << "a" << std::endl;
 	// box lim is the min max of box
 	std::vector<Eigen::Vector3f> boxlim = Flyscene::getBoxLimits(box, mesh);
 
@@ -379,13 +382,13 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 
     float cut;
 
-	std::cout << "red1 " << std::endl;
+	//std::cout << "red1 " << std::endl;
 	//if x diff is the highest cut from there
     if (xdiff > ydiff && xdiff > zdiff) {
 		//contains the mean
         cut = boxlim[2].x();
 
-		std::cout << " cut from x " << std::endl;
+		//std::cout << " cut from x " << std::endl;
         for (int i = 0; i < box.size(); i++) {
 			bool box1con = false;
 			bool box2con = false;
@@ -486,17 +489,17 @@ std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
 // src =  slights
 std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes,
                   std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node, Tucano::Mesh mesh, std::vector<HitData>& hits) {
-	std::cout << "BOXessss " << boxes.size() << std::endl;
-	std::cout << "WE ARE " << inter_node << std::endl;
+	//std::cout << "BOXessss " << boxes.size() << std::endl;
+	//std::cout << "WE ARE " << inter_node << std::endl;
 	
 
 	if (boxes.size() <= inter_node) {
-		std::cout << " returned " << std::endl;
-		std::cout << hits.size() << std::endl;
+		//std::cout << " returned " << std::endl;
+		//std::cout << hits.size() << std::endl;
 		return hits;
 	}
 
-	std::cout << "BOX SIZE " << boxes[inter_node].size() << std::endl;
+	//std::cout << "BOX SIZE " << boxes[inter_node].size() << std::endl;
 
 	if (boxes[inter_node].size() == 0) {
 		return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
@@ -504,7 +507,7 @@ std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std
 	}
 	
 	
-	std::cout << "red2 " << std::endl;
+	//std::cout << "red2 " << std::endl;
     float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
     float tmax_x = (boxbounds[inter_node][1].x() - start.x()) / to.x();
 
@@ -529,13 +532,13 @@ std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std
 	tout = std::min(tout, tout_z);
 
     if ((tin > tout) || tout < 0 ) {
-		std::cout << "box missed " << std::endl;
+		//std::cout << "box missed " << std::endl;
         if (boxes.size() <= inter_node) {
             return hits;
         }
         return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
     }
-	std::cout << "box hit " << std::endl;
+	//std::cout << "box hit " << std::endl;
     for (int i = 0; i < boxes[inter_node].size(); i++) {
         auto ans = intersectTriange(start, to, boxes[inter_node][i], mesh);
         if (ans.inter) {
@@ -585,11 +588,11 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 	*/
 	
     hits = intersectBox(start, to, boxes, boxbounds, 0, mesh, lolz);
-	std::cout << "hits size " <<hits.size()<< std::endl;
+	//std::cout << "hits size " <<hits.size()<< std::endl;
 	if (hits.size() == 0) {
 		return result{ false, mesh.getFace(0), Eigen::Vector3f(Eigen::Vector3f(0, 0, 0)) };
 	}
-	std::cout << "red3 " << std::endl;
+	//std::cout << "red3 " << std::endl;
 	// go through all the hits and get the smallest distance
 	Eigen::Vector3f ahit = hits[0].gethit();
 	float min_distance = sqrt((pow(start.x()-ahit.x(), 2) + pow(start.y() - ahit.y(), 2) + pow(start.z() - ahit.z(), 2)));
@@ -603,7 +606,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 		}
 	}
     
-	std::cout << "the one " << the_one << std::endl;
+	//std::cout << "the one " << the_one << std::endl;
 
     return result{true, hits[the_one].face, hits[the_one].gethit()};
 }
@@ -677,20 +680,20 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		reflected_lights.push_back(reflected_light);
 
 		auto intersection = intersect(hit, light_vec, mesh, boxes, boxbounds);
-		std::cout << "INTERSECTTTTTTTT " << intersection.inter << std::endl;
+		//std::cout << "INTERSECTTTTTTTT " << intersection.inter << std::endl;
 		if (!intersection.inter) {
 			/// 3) compute ambient, diffuse and specular components
 			Eigen::Vector3f A = light_intensity.array() * ka.array();
-			std::cout << "AMBIENT " << A << std::endl;
+			//std::cout << "AMBIENT " << A << std::endl;
 
 			// normalized lenght = 1
 			float cosss = normal3.dot(light_vec);
 			Eigen::Vector3f D = light_intensity.array() * kd.array() * cosss;
-			std::cout << "DIFUSE " << D << std::endl;
+			//std::cout << "DIFUSE " << D << std::endl;
 
 			float coss = reflected_light.dot(eye_vec3);
 			Eigen::Vector3f S = light_intensity.array() * ks.array() * pow(std::max(coss, 0.0f), n);
-			std::cout << "SPECULAR " << S << std::endl;
+			//std::cout << "SPECULAR " << S << std::endl;
 			// max because -shinenes doesnt make sense
 
 
@@ -713,7 +716,6 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		maxz = std::max(maxz, colors[n].z());
 	}
 
-	return Eigen::Vector3f(maxx, maxy, maxz);
 
 	// THIS PART IS UNKNOWN WHEN SURE PUT IT BEFORE RETURN
 	// I am not even sgure if this part must be here or not
@@ -722,8 +724,12 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 
 	//reflection
 	Eigen::Vector3f reflection = reflect(from, normal3);
-	
-	shade(level - 1, hit, reflection, face, mesh, phong, lights, boxes, boxbounds);
+	Eigen::Vector3f reflected = Eigen::Vector3f(0, 0, 0);
+	if (level > 0) {
+		reflected = recursiveraytracing(level - 1, hit, reflection, mesh, phong, lights, boxes, boxbounds);
+	}
+	//why call shade recursively, it should only supply the color....?
+	//shade(level - 1, hit, reflection, face, mesh, phong, lights, boxes, boxbounds);
 
 
 	// refraction
@@ -731,27 +737,32 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	float material = materials[face.material_id].getOpticalDensity();
 
 	Eigen::Vector3f refraction = refract(from, normal3, air, material);
-	
-	shade(level - 1, hit, refraction, face, mesh, phong, lights, boxes, boxbounds);
-	
+	Eigen::Vector3f refracted(0, 0, 0);
+	if (level > 0) {
+		// i dont know how refracion is supposed to be implemented so i leave it out for now.
+		//refracted = recursiveraytracing(level - 1, hit, refraction, mesh, phong, lights, boxes, boxbounds);
+	}
 
+	//we dont have to call shade recursively
+	//shade(level - 1, hit, refraction, face, mesh, phong, lights, boxes, boxbounds);
+	
+	return colors[0] + reflected + refracted;
 }
 
 Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
                                     Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
                                     std::vector<std::vector<Tucano::Face>> boxes,
                                     std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
-	std::cout << "recursive ray tracing" << std::endl;
-	//return empty vector which is just supposed to be black
+	//std::cout << "recursive ray tracing" << std::endl;
+	//return empty vector which is just supposed to be the background color
     auto intersection = intersect(start, to, mesh, boxes, boxbounds);
     if (!intersection.inter) {
+		//CHANGE THIS TO THE  BACKGROUND COLOR, I DONT KNOW WHAT THAT COLOR IS BUT THAT THAT COLOR
+		//cuz if it doesnt intersect with anything we see the sky
         return Eigen::Vector3f(0, 0, 0);
     }
 	// if level is not 0 it should do the method agtain ?? we never do that here
-    if (level == 0) {
-        return start; //returns the coordinates for right now. whoever is working on shading and this function,
-        // will determine if this is enough or they need to output color from this functions somehow.
-    }
+	// we do actually, but we go through shade first
     return shade(level, intersection.hit, intersection.hit - start, intersection.face,
                  mesh, phong, lights, boxes, boxbounds); //either return just the color or after the shading
 }
@@ -760,7 +771,7 @@ Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, 
 Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest ,std::vector<std::vector<Tucano::Face>> &boxes, std::vector<std::vector<Eigen::Vector3f>> &boxbounds) {
     // just some fake random color per pixel until you implement your ray tracing
     // remember to return your RGB values as floats in the range [0, 1]!!!
-    Eigen::Vector3f result = recursiveraytracing(1, origin, dest, mesh, phong, lights, boxes,
+    Eigen::Vector3f result = recursiveraytracing(2, origin, dest, mesh, phong, lights, boxes,
                                                  boxbounds);   //bounce one more ray
 
     return result;
