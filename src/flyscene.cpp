@@ -676,7 +676,7 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 
 	for (int i = 0; i < lights.size(); i++) {
 		if (!isVisible(hit, face, mesh, lights[i], boxes, boxbounds)) {
-			continue
+			continue;
 		}
 
 		Eigen::Vector3f color;
