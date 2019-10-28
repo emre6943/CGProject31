@@ -1,5 +1,8 @@
 #include "flyscene.hpp"
 #include <GLFW/glfw3.h>
+#include <thread>
+#include <atomic>
+#include <future>
 
 
 void Flyscene::initialize(int width, int height) {
@@ -128,7 +131,7 @@ void Flyscene::simulate(GLFWwindow *window) {
 
 
 void Flyscene::raytraceScene(int width, int height) {
-    std::cout << "ray tracing ..." << std::endl;
+	std::cout << "ray tracing ..." << std::endl;
 
 	std::vector<std::vector<Tucano::Face>> boxes = firstBox(mesh);
 	std::vector<std::vector<Eigen::Vector3f>> boxbounds;
@@ -136,31 +139,45 @@ void Flyscene::raytraceScene(int width, int height) {
 		boxbounds.push_back(getBoxLimits(boxes[i], mesh));
 	}
 
-    // if no width or height passed, use dimensions of current viewport
-    Eigen::Vector2i image_size(width, height);
-    if (width == 0 || height == 0) {
-        image_size = flycamera.getViewportSize();
-    }
+	// if no width or height passed, use dimensions of current viewport
+	Eigen::Vector2i image_size(width, height);
+	if (width == 0 || height == 0) {
+		image_size = flycamera.getViewportSize();
+	}
 
-    // create 2d vector to hold pixel colors and resize to match image size
-    vector<vector<Eigen::Vector3f>> pixel_data;
-    pixel_data.resize(image_size[1]);
-    for (int i = 0; i < image_size[1]; ++i)
-        pixel_data[i].resize(image_size[0]);
+	// create 2d vector to hold pixel colors and resize to match image size
+	vector<vector<Eigen::Vector3f>> pixel_data;
+	pixel_data.resize(image_size[1]);
+	for (int i = 0; i < image_size[1]; ++i)
+		pixel_data[i].resize(image_size[0]);
 
-    // origin of the ray is always the camera center
-    Eigen::Vector3f origin = flycamera.getCenter();
-    Eigen::Vector3f screen_coords;
+	// origin of the ray is always the camera center
+	Eigen::Vector3f origin = flycamera.getCenter();
+	Eigen::Vector3f screen_coords;
 
-    // for every pixel shoot a ray from the origin through the pixel coords
-    for (int j = 0; j < image_size[1]; ++j) {
-        for (int i = 0; i < image_size[0]; ++i) {
-            // create a ray from the camera passing through the pixel (i,j)
-            screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-            // launch raytracing for the given ray and write result to pixel data
-            pixel_data[i][j] = traceRay(origin, screen_coords, boxes, boxbounds);
-        }
-    }
+	//src = https://medium.com/@phostershop/solving-multithreaded-raytracing-issues-with-c-11-7f018ecd76fa
+	std::size_t max = width * height;
+	std::size_t cores = std::thread::hardware_concurrency();
+	
+	std::vector<std::future<void>> future_vector;
+
+	while (cores--) {
+		future_vector.emplace_back(
+			std::async([=, &origin, &screen_coords, &boxes, &boxbounds,&pixel_data]() mutable
+				{
+					while (true) {// for every pixel shoot a ray from the origin through the pixel coords
+						for (int j = 0; j < image_size[1]; ++j) {
+							for (int i = 0; i < image_size[0]; ++i) {
+								// create a ray from the camera passing through the pixel (i,j)
+								screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
+								// launch raytracing for the given ray and write result to pixel data
+								pixel_data[i][j] = traceRay(origin, screen_coords, boxes, boxbounds);
+							}
+						}
+					}
+				}));
+
+	}
 
     // write the ray tracing result to a PPM image
     Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
@@ -647,7 +664,7 @@ Eigen::Vector3f directIllumination(const Eigen::Vector3f &I, const Eigen::Vector
 */
 // src = assignment 5
 Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f from,Tucano::Face face, Tucano::Mesh mesh,
-                      Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
+                      Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights, Eigen::Vector3f light_intensity,
                       std::vector<std::vector<Tucano::Face>> boxes,
                       std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
 	
@@ -659,7 +676,7 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	/// 2) compute eye direction
 	Eigen::Vector3f eye_vec3 = (-from).normalized();
 
-	Eigen::Vector3f light_intensity = Eigen::Vector3f(1,1,1);
+	
 	
 	
 	Eigen::Vector3f ka = phong.getMaterial(face.material_id).getAmbient();
@@ -724,7 +741,7 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	//reflection
 	Eigen::Vector3f reflection = reflect(from, normal3);
 	
-	shade(level - 1, hit, reflection, face, mesh, phong, lights, boxes, boxbounds);
+	shade(level - 1, hit, reflection, face, mesh, phong, lights,colors[0], boxes, boxbounds);
 
 
 	// refraction
@@ -733,7 +750,7 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 
 	Eigen::Vector3f refraction = refract(from, normal3, air, material);
 	
-	shade(level - 1, hit, refraction, face, mesh, phong, lights, boxes, boxbounds);
+	shade(level - 1, hit, refraction, face, mesh, phong, lights, colors[0], boxes, boxbounds);
 	
 
 }
@@ -755,7 +772,7 @@ Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, 
         // will determine if this is enough or they need to output color from this functions somehow.
     }
     return shade(level, intersection.hit, intersection.hit - start, intersection.face,
-                 mesh, phong, lights, boxes, boxbounds); //either return just the color or after the shading
+                 mesh, phong, lights, Eigen::Vector3f(1, 1, 1), boxes, boxbounds); //either return just the color or after the shading
 }
 
 
@@ -818,7 +835,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
 		Eigen::Vector3f reflection = reflect(dir, facenorm);
 		reflectionRay.setSize(0.005, 10);
 		reflectionRay.setOriginOrientation(intersection.hit, reflection);
-		Eigen::Vector3f color3 = shade(1, intersection.hit, intersection.hit - flycamera.getCenter(), intersection.face, mesh, phong, lights, boxes, boxbounds);
+		Eigen::Vector3f color3 = shade(1, intersection.hit, intersection.hit - flycamera.getCenter(), intersection.face, mesh, phong, lights, Eigen::Vector3f(1, 1, 1), boxes, boxbounds);
 		Eigen::Vector4f color4 = Eigen::Vector4f(color3.x(), color3.y(), color3.z(), 1);
 		reflectionRay.setColor(color4);
 		std::cout << "COLOR " << color4 << std::endl;

@@ -73,7 +73,7 @@ public:
 	  std::vector<std::vector<Tucano::Face>> boxes,
 	  std::vector<std::vector<Eigen::Vector3f>> boxbounds);
 
-  Eigen::Vector3f shade(int level, Eigen::Vector3f hit, Eigen::Vector3f from, Tucano::Face face, Tucano::Mesh mesh, Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
+  Eigen::Vector3f shade(int level, Eigen::Vector3f hit, Eigen::Vector3f from, Tucano::Face face, Tucano::Mesh mesh, Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights, Eigen::Vector3f light_intensity,
 	  std::vector<std::vector<Tucano::Face>> boxes,
 	  std::vector<std::vector<Eigen::Vector3f>> boxbounds);
 
