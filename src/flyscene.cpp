@@ -156,25 +156,36 @@ void Flyscene::raytraceScene(int width, int height) {
 	Eigen::Vector3f screen_coords;
 
 	//src = https://medium.com/@phostershop/solving-multithreaded-raytracing-issues-with-c-11-7f018ecd76fa
-	std::size_t max = width * height;
+	std::size_t max = image_size[0] * image_size[1];
+	std::cout << "maxx"<<max;
+	volatile std::atomic<std::size_t> curr_pixel(0);
 	std::size_t cores = std::thread::hardware_concurrency();
-	
+	volatile std::atomic<std::size_t> count(0);
+	std::cout << "count" << count;
 	std::vector<std::future<void>> future_vector;
-
 	while (cores--) {
 		future_vector.emplace_back(
-			std::async([=, &origin, &screen_coords, &boxes, &boxbounds,&pixel_data]() mutable
+			std::async([=,&image_size, &count, &origin, &screen_coords, &boxes, &boxbounds,&pixel_data]() mutable
 				{
-					while (true) {// for every pixel shoot a ray from the origin through the pixel coords
-						for (int j = 0; j < image_size[1]; ++j) {
-							for (int i = 0; i < image_size[0]; ++i) {
-								// create a ray from the camera passing through the pixel (i,j)
-								screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-								// launch raytracing for the given ray and write result to pixel data
-								pixel_data[i][j] = traceRay(origin, screen_coords, boxes, boxbounds);
-							}
-						}
+					while (true)
+					{
+						std::size_t index = count++;
+						
+						if (index >= max)
+							break;
+						std::size_t i = index % image_size[1];
+						std::size_t j = index / image_size[1];
+						
+						std::cout << "index " << index << std::endl;
+						
+
+						// create a ray from the camera passing through the pixel (i,j)
+						auto screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
+						// launch raytracing for the given ray and write result to pixel data
+						pixel_data[i][j] = traceRay(origin, screen_coords, boxes, boxbounds);
 					}
+					
+					
 				}));
 
 	}
@@ -779,7 +790,8 @@ Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, 
 Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest ,std::vector<std::vector<Tucano::Face>> &boxes, std::vector<std::vector<Eigen::Vector3f>> &boxbounds) {
     // just some fake random color per pixel until you implement your ray tracing
     // remember to return your RGB values as floats in the range [0, 1]!!!
-    Eigen::Vector3f result = recursiveraytracing(1, origin, dest - origin, mesh, phong, lights, boxes,
+	std::cout << "trace ray" << std::endl;
+    Eigen::Vector3f result = recursiveraytracing(2, origin, dest - origin, mesh, phong, lights, boxes,
                                                  boxbounds);   //bounce one more ray
 
     return result;
