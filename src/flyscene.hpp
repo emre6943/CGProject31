@@ -83,6 +83,9 @@ public:
   
   void createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std::vector<std::vector<Tucano::Face>>& boxes);
 
+  auto hardShadow(Eigen::Vector3f hit, Tucano::Face face, Tucano::Mesh mesh, std::vector<Eigen::Vector3f> lights,
+	  std::vector<std::vector<Tucano::Face>> boxes, std::vector<std::vector<Eigen::Vector3f>> boxbounds);
+
 
 private:
   // A simple phong shader for rendering meshes

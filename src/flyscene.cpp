@@ -180,7 +180,7 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
         Eigen::Vector3f point;
     };
 
-	std::cout << "Plane Intersect";
+	//std::cout << "Plane Intersect";
 
     if (to.dot(normal) == 0) {
         return result{false, 0, p};
@@ -223,7 +223,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
         Eigen::Vector3f hit;
     };
 
-	std::cout << "Tiangle Intersect";
+	//std::cout << "Tiangle Intersect";
 
 	auto planeinter = intersectPlane(start, to, facenormal, v0);
 
@@ -255,7 +255,7 @@ auto intersectTriange(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Face fa
 			return result{ false, face, mesh ,p_onPlane };
 		}
 
-		std::cout << "TRIANGEL INTERSECTION FOUND " << std::endl;
+		//std::cout << "TRIANGEL INTERSECTION FOUND " << std::endl;
 		return result{ true, face, mesh, p_onPlane };
 
 	}
@@ -291,14 +291,14 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
     }
 
     std::vector<GLuint> vecsofface;
-	std::cout << "sasa";
+	//std::cout << "sasa";
 
     for (int i = 0; i < box.size(); i++) {
         for (int a = 0; a < box[i].vertex_ids.size(); a++) {
             vecsofface.push_back(box[i].vertex_ids[a]);
         }
     }
-	std::cout << "sasa";
+	//std::cout << "sasa";
 
     float mean_x = 0;
     float mean_y = 0;
@@ -346,8 +346,8 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
     mean_x = mean_x / vecsofface.size();
     mean_y = mean_y / vecsofface.size();
     mean_z = mean_z / vecsofface.size();
-	std::cout << "min " << Eigen::Vector3f(min_x, min_y, min_z) << std::endl;
-	std::cout << "max" << Eigen::Vector3f(max_x, max_y, max_z) << std::endl;
+	//std::cout << "min " << Eigen::Vector3f(min_x, min_y, min_z) << std::endl;
+	//std::cout << "max" << Eigen::Vector3f(max_x, max_y, max_z) << std::endl;
 
     vecs.push_back(Eigen::Vector3f(min_x, min_y, min_z));
     vecs.push_back(Eigen::Vector3f(max_x, max_y, max_z));
@@ -369,7 +369,7 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 		return;
 	}
 
-	std::cout << "a" << std::endl;
+	//std::cout << "a" << std::endl;
 	// box lim is the min max of box
 	std::vector<Eigen::Vector3f> boxlim = Flyscene::getBoxLimits(box, mesh);
 
@@ -379,13 +379,13 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
 
     float cut;
 
-	std::cout << "red1 " << std::endl;
+	//std::cout << "red1 " << std::endl;
 	//if x diff is the highest cut from there
     if (xdiff > ydiff && xdiff > zdiff) {
 		//contains the mean
         cut = boxlim[2].x();
 
-		std::cout << " cut from x " << std::endl;
+		//std::cout << " cut from x " << std::endl;
         for (int i = 0; i < box.size(); i++) {
 			bool box1con = false;
 			bool box2con = false;
@@ -410,7 +410,7 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
         }
 		//if y dif is highest cut from y
     } else if (ydiff > xdiff && ydiff > zdiff) {
-		std::cout << " cut from y " << std::endl;
+		//std::cout << " cut from y " << std::endl;
         cut = boxlim[2].y();
 		std::cout << box.size() << std::endl;
         for (int i = 0; i < box.size(); i++) {
@@ -437,7 +437,7 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
         }
 		//if z dif is highest cut from z
     } else {
-		std::cout << " cut from z " << std::endl;
+		//std::cout << " cut from z " << std::endl;
         cut = boxlim[2].z();
 		std::cout << box.size() << std::endl;
         for (int i = 0; i < box.size(); i++) {
@@ -462,9 +462,9 @@ void Flyscene::createboxes(std::vector<Tucano::Face> box, Tucano::Mesh mesh, std
             }
         }
     }
-	std::cout << "BOX1" << box1.size() << std::endl;
+	//std::cout << "BOX1" << box1.size() << std::endl;
     createboxes(box1, mesh, boxes);
-	std::cout << "BOX2" << box2.size() << std::endl;
+	//std::cout << "BOX2" << box2.size() << std::endl;
     createboxes(box2, mesh, boxes);
 
 }
@@ -476,8 +476,8 @@ std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
     for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
         box.push_back(mesh.getFace(i));
     }
-	std::cout << "big box" << box.size() << std::endl;
-	std::cout << "total faces" << mesh.getNumberOfFaces() << std::endl;
+	//std::cout << "big box" << box.size() << std::endl;
+	//std::cout << "total faces" << mesh.getNumberOfFaces() << std::endl;
     createboxes(box, mesh, boxes);
     return boxes;
 }
@@ -486,17 +486,17 @@ std::vector<std::vector<Tucano::Face>> Flyscene::firstBox(Tucano::Mesh mesh) {
 // src =  slights
 std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std::vector<std::vector<Tucano::Face>> boxes,
                   std::vector<std::vector<Eigen::Vector3f>> boxbounds, int inter_node, Tucano::Mesh mesh, std::vector<HitData>& hits) {
-	std::cout << "BOXessss " << boxes.size() << std::endl;
-	std::cout << "WE ARE " << inter_node << std::endl;
+	//std::cout << "BOXessss " << boxes.size() << std::endl;
+	//std::cout << "WE ARE " << inter_node << std::endl;
 	
 
 	if (boxes.size() <= inter_node) {
-		std::cout << " returned " << std::endl;
+		//std::cout << " returned " << std::endl;
 		std::cout << hits.size() << std::endl;
 		return hits;
 	}
 
-	std::cout << "BOX SIZE " << boxes[inter_node].size() << std::endl;
+	//std::cout << "BOX SIZE " << boxes[inter_node].size() << std::endl;
 
 	if (boxes[inter_node].size() == 0) {
 		return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
@@ -504,7 +504,7 @@ std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std
 	}
 	
 	
-	std::cout << "red2 " << std::endl;
+	//std::cout << "red2 " << std::endl;
     float tmin_x = (boxbounds[inter_node][0].x() - start.x()) / to.x();
     float tmax_x = (boxbounds[inter_node][1].x() - start.x()) / to.x();
 
@@ -529,13 +529,13 @@ std::vector<HitData> intersectBox(Eigen::Vector3f start, Eigen::Vector3f to, std
 	tout = std::min(tout, tout_z);
 
     if ((tin > tout) || tout < 0 ) {
-		std::cout << "box missed " << std::endl;
+		//std::cout << "box missed " << std::endl;
         if (boxes.size() <= inter_node) {
             return hits;
         }
         return intersectBox(start, to, boxes, boxbounds, inter_node + 1, mesh, hits);
     }
-	std::cout << "box hit " << std::endl;
+	//std::cout << "box hit " << std::endl;
     for (int i = 0; i < boxes[inter_node].size(); i++) {
         auto ans = intersectTriange(start, to, boxes[inter_node][i], mesh);
         if (ans.inter) {
@@ -585,11 +585,11 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 	*/
 	
     hits = intersectBox(start, to, boxes, boxbounds, 0, mesh, lolz);
-	std::cout << "hits size " <<hits.size()<< std::endl;
+	//std::cout << "hits size " <<hits.size()<< std::endl;
 	if (hits.size() == 0) {
 		return result{ false, mesh.getFace(0), Eigen::Vector3f(Eigen::Vector3f(0, 0, 0)) };
 	}
-	std::cout << "red3 " << std::endl;
+	//std::cout << "red3 " << std::endl;
 	// go through all the hits and get the smallest distance
 	Eigen::Vector3f ahit = hits[0].gethit();
 	float min_distance = sqrt((pow(start.x()-ahit.x(), 2) + pow(start.y() - ahit.y(), 2) + pow(start.z() - ahit.z(), 2)));
@@ -603,7 +603,7 @@ auto intersect(Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, std
 		}
 	}
     
-	std::cout << "the one " << the_one << std::endl;
+	//std::cout << "the one " << the_one << std::endl;
 
     return result{true, hits[the_one].face, hits[the_one].gethit()};
 }
@@ -621,6 +621,20 @@ Eigen::Vector3f refract(Eigen::Vector3f v, Eigen::Vector3f normal, float n1, flo
 
 Eigen::Vector3f reflect(const Eigen::Vector3f I, const Eigen::Vector3f N) {
     return I - 2 * I.dot(N) * N;
+}
+
+auto Flyscene::hardShadow(Eigen::Vector3f hit, Tucano::Face face, Tucano::Mesh mesh, std::vector<Eigen::Vector3f> lights,
+	std::vector<std::vector<Tucano::Face>> boxes, std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
+	float frac = 0;
+
+	for (std::vector<Eigen::Vector3f>::iterator it = lights.begin(); it != lights.end(); ++it) {
+		bool inter = intersect(*it, hit, mesh, boxes, boxbounds).inter;
+		if (!inter) frac = frac += 1;
+		///if (!inter) return true;
+	}
+
+	return frac / lights.size();
+	//return false;
 }
 
 /* NOTE: whoever will implement hard shadow from a point, you need to check in the 2nd for loop, whether there is a face
@@ -650,7 +664,7 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
                       Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
                       std::vector<std::vector<Tucano::Face>> boxes,
                       std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
-	
+
 	std::vector<Eigen::Vector3f> light_directions;
 	std::vector<Eigen::Vector3f> reflected_lights;
 	std::vector<Eigen::Vector3f> colors;
@@ -678,20 +692,20 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		reflected_lights.push_back(reflected_light);
 
 		auto intersection = intersect(hit, light_vec, mesh, boxes, boxbounds);
-		std::cout << "INTERSECTTTTTTTT " << intersection.inter << std::endl;
+		//std::cout << "INTERSECTTTTTTTT " << intersection.inter << std::endl;
 		if (!intersection.inter) {
 			/// 3) compute ambient, diffuse and specular components
 			Eigen::Vector3f A = light_intensity.array() * ka.array();
-			std::cout << "AMBIENT " << A << std::endl;
+			//std::cout << "AMBIENT " << A << std::endl;
 
 			// normalized lenght = 1
 			float cosss = normal3.dot(light_vec);
 			Eigen::Vector3f D = light_intensity.array() * kd.array() * cosss;
-			std::cout << "DIFUSE " << D << std::endl;
+			//std::cout << "DIFUSE " << D << std::endl;
 
 			float coss = reflected_light.dot(eye_vec3);
 			Eigen::Vector3f S = light_intensity.array() * ks.array() * pow(std::max(coss, 0.0f), n);
-			std::cout << "SPECULAR " << S << std::endl;
+			//std::cout << "SPECULAR " << S << std::endl;
 			// max because -shinenes doesnt make sense
 
 
@@ -713,6 +727,11 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		sumy = sumy + colors[n].y();
 		sumz = sumz + colors[n].z();
 	}
+
+	float frac = hardShadow(hit, face, mesh, lights, boxes, boxbounds);
+	sumx = sumx * frac;
+	sumy = sumy * frac;
+	sumz = sumz * frac;
 
 	return Eigen::Vector3f(sumx, sumy, sumz);
 
