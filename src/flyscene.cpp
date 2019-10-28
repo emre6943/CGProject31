@@ -172,7 +172,7 @@ void Flyscene::raytraceScene(int width, int height) {
 // src = slights
 auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f normal, Eigen::Vector3f p) {
     
-    float distance = p.dot(normal);
+   float denom = normal.dot(to);
     Eigen::Vector3f point;
     struct result {
         bool inter;
@@ -182,22 +182,24 @@ auto intersectPlane(Eigen::Vector3f start, Eigen::Vector3f to, Eigen::Vector3f n
 
 	std::cout << "Plane Intersect";
 
-    if (to.dot(normal) == 0) {
-        return result{false, 0, p};
+    if (abs(denom) > 0.0001f) {
+        
+		float t = (p - start).dot(normal) / denom;
+		Eigen::Vector3f xyz = (start + t * to);
+
+		if (t < 0) {
+			return result{ false, 0 , xyz };
+		}
+
+		//if intersection point and start is same doesnt count for shade
+		if (xyz.x() == start.x() && xyz.y() == start.y() && xyz.z() == start.z()) {
+			return result{ false, 0, p };
+		}
+
+		
+		return result{ true, t, xyz };	
     }
-
-    float t = (distance - (start.dot(normal))) / (to.dot(normal));
-    Eigen::Vector3f xyz = (start + t * to);
-
-	//if intersection point and start is same doesnt count for shade
-	if (xyz.x() == start.x() && xyz.y() == start.y() && xyz.z() == start.z()) {
-		return result{ false, 0, p };
-	}
-    
-	if (t < 0) {
-		return result{ false, 0 , xyz};
-	}
-    return result{true, t, xyz};
+	return result{ false, 0, p };
 }
 
 
