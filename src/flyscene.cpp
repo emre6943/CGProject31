@@ -623,18 +623,11 @@ Eigen::Vector3f reflect(const Eigen::Vector3f I, const Eigen::Vector3f N) {
     return I - 2 * I.dot(N) * N;
 }
 
-auto Flyscene::hardShadow(Eigen::Vector3f hit, Tucano::Face face, Tucano::Mesh mesh, std::vector<Eigen::Vector3f> lights,
+auto Flyscene::isVisible(Eigen::Vector3f hit, Tucano::Face face, Tucano::Mesh mesh, Eigen::Vector3f light,
 	std::vector<std::vector<Tucano::Face>> boxes, std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
-	float frac = 0;
-
-	for (std::vector<Eigen::Vector3f>::iterator it = lights.begin(); it != lights.end(); ++it) {
-		bool inter = intersect(*it, hit, mesh, boxes, boxbounds).inter;
-		if (!inter) frac = frac += 1;
-		///if (!inter) return true;
-	}
-
-	return frac / lights.size();
-	//return false;
+	
+	bool inter = intersect(light, hit, mesh, boxes, boxbounds).inter;
+	return !inter;
 }
 
 /* NOTE: whoever will implement hard shadow from a point, you need to check in the 2nd for loop, whether there is a face
@@ -682,6 +675,10 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	float n = materials[face.material_id].getShininess();
 
 	for (int i = 0; i < lights.size(); i++) {
+		if (!isVisible(hit, face, mesh, lights[i], boxes, boxbounds)) {
+			continue
+		}
+
 		Eigen::Vector3f color;
 		/// 0) compute the light direction
 		Eigen::Vector3f light_vec = (lights[i] - hit).normalized();
@@ -727,11 +724,6 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		sumy = sumy + colors[n].y();
 		sumz = sumz + colors[n].z();
 	}
-
-	float frac = hardShadow(hit, face, mesh, lights, boxes, boxbounds);
-	sumx = sumx * frac;
-	sumy = sumy * frac;
-	sumz = sumz * frac;
 
 	return Eigen::Vector3f(sumx, sumy, sumz);
 
