@@ -71,7 +71,7 @@ public:
 
   Eigen::Vector3f recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh, Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
 	  std::vector<std::vector<Tucano::Face>> boxes,
-	  std::vector<std::vector<Eigen::Vector3f>> boxbounds);
+	  std::vector<std::vector<Eigen::Vector3f>> boxbounds, bool ref);
 
   Eigen::Vector3f shade(int level, Eigen::Vector3f hit, Eigen::Vector3f from, Tucano::Face face, Tucano::Mesh mesh, Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
 	  std::vector<std::vector<Tucano::Face>> boxes,

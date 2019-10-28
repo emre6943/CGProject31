@@ -659,6 +659,7 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	/// 2) compute eye direction
 	Eigen::Vector3f eye_vec3 = (-from).normalized();
 
+
 	Eigen::Vector3f light_intensity = Eigen::Vector3f(1,1,1);
 	
 	
@@ -714,7 +715,6 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 		sumz = sumz + colors[n].z();
 	}
 
-	return Eigen::Vector3f(sumx, sumy, sumz);
 
 	// THIS PART IS UNKNOWN WHEN SURE PUT IT BEFORE RETURN
 	// I am not even sgure if this part must be here or not
@@ -723,8 +723,10 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 
 	//reflection
 	Eigen::Vector3f reflection = reflect(from, normal3);
-	
-	shade(level - 1, hit, reflection, face, mesh, phong, lights, boxes, boxbounds);
+	Eigen::Vector3f reflectioncolor = Eigen::Vector3f(0,0,0);
+	if (level > 0) {
+		reflectioncolor = recursiveraytracing(level - 1, hit, reflection, mesh, phong, lights, boxes, boxbounds,true);
+	}
 
 
 	// refraction
@@ -732,23 +734,27 @@ Eigen::Vector3f Flyscene::shade(int level, Eigen::Vector3f hit, Eigen::Vector3f 
 	float material = materials[face.material_id].getOpticalDensity();
 
 	Eigen::Vector3f refraction = refract(from, normal3, air, material);
+	Eigen::Vector3f refractioncolor = Eigen::Vector3f(0, 0, 0);
+	//refractioncolor = recursiveraytracing(level - 1, hit, refraction, mesh, phong, lights, boxes, boxbounds, true);
 	
-	shade(level - 1, hit, refraction, face, mesh, phong, lights, boxes, boxbounds);
-	
+	return Eigen::Vector3f(sumx, sumy, sumz) + reflectioncolor + refractioncolor;
 
 }
 
 Eigen::Vector3f Flyscene::recursiveraytracing(int level, Eigen::Vector3f start, Eigen::Vector3f to, Tucano::Mesh mesh,
                                     Tucano::Effects::PhongMaterial phong, std::vector<Eigen::Vector3f> lights,
                                     std::vector<std::vector<Tucano::Face>> boxes,
-                                    std::vector<std::vector<Eigen::Vector3f>> boxbounds) {
+                                    std::vector<std::vector<Eigen::Vector3f>> boxbounds, bool ref) {
 	std::cout << "recursive ray tracing" << std::endl;
 	//return empty vector which is just supposed to be black
     auto intersection = intersect(start, to, mesh, boxes, boxbounds);
 	std::cout << intersection.inter << std::endl;
-    if (!intersection.inter) {
+    if (!intersection.inter && !ref) {
         return Eigen::Vector3f(1, 1, 1);
     }
+	if (!intersection.inter && ref) {
+		return Eigen::Vector3f(0, 0, 0);
+	}
 	// if level is not 0 it should do the method agtain ?? we never do that here
     if (level == 0) {
         return start; //returns the coordinates for right now. whoever is working on shading and this function,
@@ -763,7 +769,7 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &des
     // just some fake random color per pixel until you implement your ray tracing
     // remember to return your RGB values as floats in the range [0, 1]!!!
     Eigen::Vector3f result = recursiveraytracing(1, origin, dest - origin, mesh, phong, lights, boxes,
-                                                 boxbounds);   //bounce one more ray
+                                                 boxbounds, false);   //bounce one more ray
 
     return result;
 }
