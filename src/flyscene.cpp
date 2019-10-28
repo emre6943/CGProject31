@@ -19,9 +19,12 @@ void Flyscene::initialize(int width, int height) {
     // normalize the model (scale to unit cube and center at origin)
     mesh.normalizeModelMatrix();
 
+
     // pass all the materials to the Phong Shader
     for (int i = 0; i < materials.size(); ++i)
         phong.addMaterial(materials[i]);
+
+
 
 
 
@@ -40,15 +43,18 @@ void Flyscene::initialize(int width, int height) {
     // scale the camera representation (frustum) for the ray debug
     camerarep.shapeMatrix()->scale(0.2);
 
+
     // the debug ray is a cylinder, set the radius and length of the cylinder
     ray.setSize(0.005, 10.0);
 	reflectionRay.setSize(0.005, 10.0);
 	refractionRay.setSize(0.005, 10.0);
 
+
     // craete a first debug ray pointing at the center of the screen
     createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
 
     glEnable(GL_DEPTH_TEST);
+
 
     // for (int i = 0; i<mesh.getNumberOfFaces(); ++i){
     //   Tucano::Face face = mesh.getFace(i);
@@ -127,6 +133,7 @@ void Flyscene::simulate(GLFWwindow *window) {
 }
 
 
+
 void Flyscene::raytraceScene(int width, int height) {
     std::cout << "ray tracing ..." << std::endl;
 
@@ -165,6 +172,7 @@ void Flyscene::raytraceScene(int width, int height) {
     // write the ray tracing result to a PPM image
     Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
     std::cout << "ray tracing done! " << std::endl;
+
 }
 
 
@@ -290,6 +298,7 @@ std::vector<Eigen::Vector3f> Flyscene::getBoxLimits(std::vector<Tucano::Face> bo
 
     if (box.size() == 0) {
         return vecs;
+
     }
 
     std::vector<GLuint> vecsofface;
